@@ -12,7 +12,6 @@ def train(**kwargs):
         setattr(opt, k_, v_)
 
 
-
 if __name__ == '__main__':
     fire.Fire()
 
