@@ -1,4 +1,4 @@
-from os import makedirs
+from os import makedirs, path
 
 
 class Config(object):
@@ -8,11 +8,13 @@ class Config(object):
         self.dataset_name = 'TU_Graz'
         self.comment = 'Basic test'
 
-        self.dataroot = './datasets/' + self.dataset_name
-        self.save_path = './checkpoints/' + self.name
-        self.model_path = self.save_path + '/models'
-        self.checkpoint_path = self.save_path + '/checkpoints'
-        self.test_path = self.save_path + '/test_results'
+        self.train = True
+        self.tugraz_root = ''
+
+        self.save_path = path.join('./checkpoints', self.name)
+        self.model_path = path.join(self.save_path, 'models')
+        self.checkpoint_path = path.join(self.save_path, 'checkpoints')
+        self.test_path = path.join(self.save_path, 'test_results')
 
         # transforms
         self.resize = True
