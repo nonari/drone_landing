@@ -47,7 +47,7 @@ tugraz_color_keys = np.asarray([
     [112, 150, 146],
     [2, 135, 115],
     [255, 0, 0],
-])[:, None, None]
+])
 
 
 def label_to_tensor(label, color_mask):
@@ -71,7 +71,8 @@ class TUGrazDataset(Dataset):
         print('Loading images...')
         self.images = [t_tugraz(Image.open(i)) for i in image_paths]
         print('Loading labels...')
-        self.labels = [label_to_tensor(Image.open(i).resize(options.new_size, Image.NEAREST), tugraz_color_keys) for i in label_paths]
+        self.labels = [label_to_tensor(Image.open(i).resize(options.new_size, Image.NEAREST),
+                                       tugraz_color_keys[:, None, None]) for i in label_paths]
 
     def __len__(self):
         return self.images.__len__()
