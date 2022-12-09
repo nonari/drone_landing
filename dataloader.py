@@ -58,8 +58,8 @@ def label_to_tensor(label, color_mask):
 class TUGrazDataset(Dataset):
     def __init__(self, options):
         subset = 'training_set' if options.train else 'testing_set'
-        images_root = path.join(options.tugraz_root, subset, 'low_res_im')
-        labels_root = path.join(options.tugraz_root, subset, 'gt/semantic/label_im_low_res')
+        images_root = path.join(options.tugraz_root, subset, options.tugraz_images_loc)
+        labels_root = path.join(options.tugraz_root, subset, f'gt/semantic/{options.tugraz_labels_loc}')
 
         image_paths = glob(images_root + '/*.jpg')
         label_paths = glob(labels_root + '/*.png')
