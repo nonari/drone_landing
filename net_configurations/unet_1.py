@@ -1,4 +1,5 @@
 CONFIG = {
+    'net': "unet",
     'encoder': "resnet34",
     'pretrained': True,
     'loss': 'nn.BCEWithLogitsLoss',
