@@ -3,6 +3,7 @@ from torch.utils.data import DataLoader
 import segmentation_models_pytorch as smp
 import torch
 from torch import nn, optim, cuda
+from os import path
 
 
 def configure_net(config, net_config):
@@ -18,6 +19,16 @@ def configure_net(config, net_config):
         raise NotImplementedError
 
     return net
+
+
+def save_checkpoint(config, net, epoch, loss):
+    location = path.join(config.checkpoint_path, str(epoch))
+
+    torch.save({
+        'epoch': epoch,
+        'model_state_dict': net.state_dict(),
+        'loss': loss
+    }, location)
 
 
 def train_net(config, dataset):

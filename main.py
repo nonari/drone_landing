@@ -13,10 +13,12 @@ def train(**kwargs):
     for k_, v_ in kwargs.items():
         setattr(opt, k_, v_)
 
-    dataset = TUGrazDataset(opt)
-
-    # Pues
-    train_net(opt, dataset)
+    if opt.folds > 1:
+        if opt.resume:
+            pass
+    else:
+        dataset = TUGrazDataset(opt, shuffle=True)
+        train_net(opt, dataset)
 
 
 if __name__ == '__main__':

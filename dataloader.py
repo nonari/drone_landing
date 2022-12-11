@@ -7,6 +7,7 @@ import torch
 from os import path
 from glob import glob
 from PIL import Image
+import importlib
 
 
 def transform_tugraz(size):
@@ -56,7 +57,7 @@ def label_to_tensor(label, color_mask):
 
 
 class TUGrazDataset(Dataset):
-    def __init__(self, options):
+    def __init__(self, options, folds=1, shuffle=False, idx_ord=None):
         subset = 'training_set' if options.train else 'testing_set'
         images_root = path.join(options.tugraz_root, subset, options.tugraz_images_loc)
         labels_root = path.join(options.tugraz_root, subset, f'gt/semantic/{options.tugraz_labels_loc}')
@@ -66,7 +67,20 @@ class TUGrazDataset(Dataset):
         image_paths = sorted(image_paths, key=lambda x: int(path.basename(x)[:3]))
         label_paths = sorted(label_paths, key=lambda x: int(path.basename(x)[:3]))
 
-        t_tugraz = transform_tugraz(options.new_size)
+        image_paths = np.asarray(image_paths)
+        label_paths = np.asarray(label_paths)
+
+        net_config = importlib.import_module(f'model_configurations.{options.model_config}').CONFIG
+        t_tugraz = transform_tugraz(net_config['input_size'])
+
+        if idx_ord is not None:
+            image_paths = image_paths[idx_ord]
+            label_paths = label_paths[idx_ord]
+        elif shuffle:
+            idx = np.arange(image_paths.shape[0])
+            np.random.shuffle(idx)
+            image_paths = image_paths[idx]
+            label_paths = label_paths[idx]
 
         print('Loading images...')
         self.images = [t_tugraz(Image.open(i)) for i in image_paths]
@@ -74,10 +88,17 @@ class TUGrazDataset(Dataset):
         self.labels = [label_to_tensor(Image.open(i).resize(options.new_size, Image.NEAREST),
                                        tugraz_color_keys[:, None, None]) for i in label_paths]
 
+        self._len = self.images.__len__() // folds
+        self._fold = 0
+
     def __len__(self):
-        return self.images.__len__()
+        return self._len
+
+    def change_fold(self, k):
+        self._fold = k
 
     def __getitem__(self, item):
+        item *= self._fold + 1
         return self.images[item], self.labels[item]
 
 
