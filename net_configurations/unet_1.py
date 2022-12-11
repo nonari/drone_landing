@@ -1,6 +1,7 @@
 CONFIG = {
-    'net': "unet",
-    'encoder': "resnet34",
+    'net': 'unet',
+    'batch_size': 1,
+    'encoder': 'resnet34',
     'pretrained': True,
     'loss': 'nn.BCEWithLogitsLoss',
     'optimizer': {

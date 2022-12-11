@@ -1,5 +1,7 @@
 from config import Config
+from training import train_net
 import fire
+from dataloader import TUGrazDataset
 
 
 def train(**kwargs):
@@ -10,6 +12,11 @@ def train(**kwargs):
     # overwrite options from commandline
     for k_, v_ in kwargs.items():
         setattr(opt, k_, v_)
+
+    dataset = TUGrazDataset(opt)
+
+    # Pues
+    train_net(opt, dataset)
 
 
 if __name__ == '__main__':
