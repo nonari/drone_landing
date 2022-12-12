@@ -13,14 +13,13 @@ class Config(object):
         self.tugraz_images_loc = 'low_res_images'
         self.tugraz_labels_loc = 'low_res_label_images'
 
-        self.save_path = path.join('./checkpoints', self.name)
+        self.save_path = path.join('./executions', self.name)
         self.model_path = path.join(self.save_path, 'models')
         self.checkpoint_path = path.join(self.save_path, 'checkpoints')
         self.test_path = path.join(self.save_path, 'test_results')
 
         # transforms
         self.resize = True
-        self.new_size = 384, 384
         self.flip = True
         self.num_threads = 2
 
@@ -33,6 +32,8 @@ class Config(object):
         self.save_every = 10  # epochs
 
         # training
+        self.resume = False
+        self.folds = 1
         self.max_epochs = 100
 
         # create directories

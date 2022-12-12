@@ -70,17 +70,20 @@ class TUGrazDataset(Dataset):
         image_paths = np.asarray(image_paths)
         label_paths = np.asarray(label_paths)
 
-        net_config = importlib.import_module(f'model_configurations.{options.model_config}').CONFIG
+        net_config = importlib.import_module(f'net_configurations.{options.model_config}').CONFIG
         t_tugraz = transform_tugraz(net_config['input_size'])
 
+        self._idx = np.arange(image_paths.shape[0])
         if idx_ord is not None:
             image_paths = image_paths[idx_ord]
             label_paths = label_paths[idx_ord]
+            self._idx = idx_ord
         elif shuffle:
             idx = np.arange(image_paths.shape[0])
             np.random.shuffle(idx)
             image_paths = image_paths[idx]
             label_paths = label_paths[idx]
+            self._idx = idx
 
         print('Loading images...')
         self.images = [t_tugraz(Image.open(i)) for i in image_paths]
@@ -91,11 +94,14 @@ class TUGrazDataset(Dataset):
         self._len = self.images.__len__() // folds
         self._fold = 0
 
-    def __len__(self):
-        return self._len
-
     def change_fold(self, k):
         self._fold = k
+
+    def get_index(self):
+        return self._idx
+
+    def __len__(self):
+        return self._len
 
     def __getitem__(self, item):
         item *= self._fold + 1

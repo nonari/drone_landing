@@ -21,21 +21,33 @@ def configure_net(config, net_config):
     return net
 
 
-def save_checkpoint(config, net, epoch, loss):
-    location = path.join(config.checkpoint_path, str(epoch))
+def save_checkpoint(config, net, epoch, loss, idx, best=False):
+    if best:
+        location = path.join(config.model_path, f'{config.fold}')
+    else:
+        location = path.join(config.checkpoint_path, f'{config.fold}_{epoch}')
 
     torch.save({
         'epoch': epoch,
         'model_state_dict': net.state_dict(),
-        'loss': loss
+        'loss': loss,
+        'fold': config.fold,
+        'idx': idx
     }, location)
 
 
-def train_net(config, dataset):
-    # TODO: checkpoint loading
+def train_net(config, dataset, checkpoint=None):
     device = torch.device('cpu' if cuda.is_available() and config.gpu else 'cpu')
     net_config = importlib.import_module(f'model_configurations.{config.model_config}').CONFIG
     net = configure_net(config, net_config)
+
+    best_loss = 1000
+    curr_epoch = 0
+    if checkpoint is not None:
+        net.load_state_dict(checkpoint['model_state_dict'])
+        curr_epoch = checkpoint['epoch']
+        best_loss = checkpoint['loss']
+
     net.to(device=device)
 
     data_loader = DataLoader(dataset=dataset,
@@ -46,10 +58,9 @@ def train_net(config, dataset):
     optimizer = eval(net_config['optimizer']['name'])(**net_config['optimizer']['path'])
     criterion = eval(net_config['loss'])()
 
-    curr_epoch = 0
-
     for epoch in range(curr_epoch, config.max_epochs):
         net.train()
+
         for image, label in data_loader:
             optimizer.zero_grad()
             image = image.to(device=device, dtype=torch.float32)
@@ -59,5 +70,11 @@ def train_net(config, dataset):
 
             loss = criterion(prediction, label)
 
+            if loss < best_loss:
+                best_loss = loss.item()
+
             loss.backward()
             optimizer.step()
+
+        if epoch % config.save_every == 0:
+            save_checkpoint(config, net, epoch, best_loss, dataset.get_index())
