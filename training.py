@@ -6,14 +6,14 @@ from torch import nn, optim, cuda
 from os import path
 
 
-def configure_net(config, net_config):
+def configure_net(net_config, classes):
     net_type = net_config['net']
     if net_type == "unet":
         net = smp.Unet(
             encoder_name=net_config['encoder'],
             encoder_weights='imagenet' if net_config['pretrained'] else None,
             in_channels=3,
-            classes=config.classes
+            classes=classes
         )
     else:
         raise NotImplementedError
@@ -36,13 +36,28 @@ def save_checkpoint(config, net, epoch, loss, idx, best=False):
     }, location)
 
 
+def load_data(config):
+    location = path.join(config.train_path, 'training_results.json')
+    if path.exists(location):
+        data = torch.load(location)
+    else:
+        data = {}
+    return data
+
+
+def save_data(config, data):
+    location = path.join(config.train_path, 'training_results.json')
+    torch.save(data, location)
+
+
 def train_net(config, dataset, checkpoint=None):
     device = torch.device('cpu' if cuda.is_available() and config.gpu else 'cpu')
-    net_config = importlib.import_module(f'model_configurations.{config.model_config}').CONFIG
-    net = configure_net(config, net_config)
+    net_config = importlib.import_module(f'net_configurations.{config.model_config}').CONFIG
+    net = configure_net(net_config, dataset.classes())
 
     best_loss = 1000
     curr_epoch = 0
+    data = load_data(config)
     if checkpoint is not None:
         net.load_state_dict(checkpoint['model_state_dict'])
         curr_epoch = checkpoint['epoch']
@@ -55,7 +70,7 @@ def train_net(config, dataset, checkpoint=None):
                              drop_last=True,
                              num_workers=config.num_threads)
 
-    optimizer = eval(net_config['optimizer']['name'])(**net_config['optimizer']['path'])
+    optimizer = eval(net_config['optimizer']['name'])(net.parameters(), **net_config['optimizer']['params'])
     criterion = eval(net_config['loss'])()
 
     for epoch in range(curr_epoch, config.max_epochs):
@@ -78,3 +93,4 @@ def train_net(config, dataset, checkpoint=None):
 
         if epoch % config.save_every == 0:
             save_checkpoint(config, net, epoch, best_loss, dataset.get_index())
+        save_data(config, data)

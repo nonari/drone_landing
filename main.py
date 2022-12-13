@@ -10,6 +10,9 @@ import torch
 def last_checkpoint(config):
     paths = glob(config.checkpoint_path + '/*')
     paths = sorted(paths, key=lambda p: (path.basename(p).split('_')[0], path.basename(p).split('_')[1]))
+    if len(paths) == 0:
+        raise Exception(f'No checkpoint found at {config.checkpoint_path}, check path or disable -resume')
+
     return paths[-1]
 
 

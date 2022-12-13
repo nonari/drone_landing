@@ -1,3 +1,4 @@
+import numpy
 import numpy as np
 from torch.utils.data import DataLoader, Dataset
 from config import Config
@@ -51,6 +52,14 @@ tugraz_color_keys = np.asarray([
 ])
 
 
+def label_to_tensor_v2(label, keys):
+    v = np.asarray([256 * 256, 256, 1])
+    one_key = np.sum(keys[:, 0, 0, :]*v, axis=1)
+    one_ch = np.sum(label * np.asarray(v)[None, None], axis=2)
+    sparse = np.equal(one_key[None, None], one_ch[..., None]).astype(np.float32)
+    return torch.tensor(sparse)
+
+
 def label_to_tensor(label, color_mask):
     sparse_mask = np.all(np.equal(label, color_mask), axis=3).astype(np.float32)
     return torch.tensor(sparse_mask)
@@ -86,10 +95,19 @@ class TUGrazDataset(Dataset):
             self._idx = idx
 
         print('Loading images...')
-        self.images = [t_tugraz(Image.open(i)) for i in image_paths]
+        self.images = []
+        for im_path in image_paths:
+            im = Image.open(im_path)
+            self.images.append(t_tugraz(im))
+            im.close()
+
         print('Loading labels...')
-        self.labels = [label_to_tensor(Image.open(i).resize(options.new_size, Image.NEAREST),
-                                       tugraz_color_keys[:, None, None]) for i in label_paths]
+        self.labels = []
+        for lab_path in label_paths:
+            lab = Image.open(lab_path)
+            lab_res = lab.resize(net_config['input_size'], Image.NEAREST)
+            lab.close()
+            self.labels.append(lab_res)
 
         self._len = self.images.__len__() // folds
         self._fold = 0
@@ -100,12 +118,15 @@ class TUGrazDataset(Dataset):
     def get_index(self):
         return self._idx
 
+    def classes(self):
+        return 24
+
     def __len__(self):
         return self._len
 
     def __getitem__(self, item):
         item *= self._fold + 1
-        return self.images[item], self.labels[item]
+        return self.images[item], label_to_tensor_v2(self.labels[item], tugraz_color_keys[:, None, None]).moveaxis(2, 0)
 
 
 if __name__ == '__main__':

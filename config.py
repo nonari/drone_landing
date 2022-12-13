@@ -17,6 +17,7 @@ class Config(object):
         self.model_path = path.join(self.save_path, 'models')
         self.checkpoint_path = path.join(self.save_path, 'checkpoints')
         self.test_path = path.join(self.save_path, 'test_results')
+        self.train_path = path.join(self.save_path, 'training_results')
 
         # transforms
         self.resize = True
