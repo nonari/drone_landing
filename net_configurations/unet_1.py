@@ -1,7 +1,6 @@
 CONFIG = {
     'net': 'unet',
     'input_size': (384, 384),
-    'batch_size': 1,
     'encoder': 'resnet34',
     'pretrained': True,
     'loss': 'nn.BCEWithLogitsLoss',

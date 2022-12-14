@@ -30,15 +30,17 @@ class Config(object):
         self.classes = None
 
         # save
-        self.save_every = 10  # epochs
+        self.save_every = 2  # epochs
 
         # training
-        self.resume = False
-        self.folds = 1
-        self.max_epochs = 100
+        self.batch_size = 1
+        self.resume = True
+        self.folds = 4
+        self.max_epochs = 4
 
         # create directories
         makedirs(self.save_path, exist_ok=True)
         makedirs(self.model_path, exist_ok=True)
         makedirs(self.checkpoint_path, exist_ok=True)
         makedirs(self.test_path, exist_ok=True)
+        makedirs(self.train_path, exist_ok=True)

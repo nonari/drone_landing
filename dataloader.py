@@ -96,20 +96,25 @@ class TUGrazDataset(Dataset):
 
         print('Loading images...')
         self.images = []
-        for im_path in image_paths:
+        for im_path in image_paths[:-380]:
             im = Image.open(im_path)
             self.images.append(t_tugraz(im))
             im.close()
 
         print('Loading labels...')
         self.labels = []
-        for lab_path in label_paths:
+        for lab_path in label_paths[:-360]:
             lab = Image.open(lab_path)
             lab_res = lab.resize(net_config['input_size'], Image.NEAREST)
             lab.close()
             self.labels.append(lab_res)
 
-        self._len = self.images.__len__() // folds
+        self._part_len = self.images.__len__() // folds
+        self._folds = folds
+        if folds > 1:
+            self._len = self._part_len * (folds - 1)
+        else:
+            self._len = self.image.__len__()
         self._fold = 0
 
     def change_fold(self, k):
@@ -125,8 +130,10 @@ class TUGrazDataset(Dataset):
         return self._len
 
     def __getitem__(self, item):
-        item *= self._fold + 1
-        return self.images[item], label_to_tensor_v2(self.labels[item], tugraz_color_keys[:, None, None]).moveaxis(2, 0)
+        shifted = (item + self._fold * self._part_len) % (self._part_len * self._folds)
+        print(item, '->', shifted)
+        return self.images[shifted], label_to_tensor_v2(self.labels[shifted],
+                                                        tugraz_color_keys[:, None, None]).moveaxis(2, 0)
 
 
 if __name__ == '__main__':

@@ -4,6 +4,8 @@ import segmentation_models_pytorch as smp
 import torch
 from torch import nn, optim, cuda
 from os import path
+from tqdm import tqdm
+import metrics
 
 
 def configure_net(net_config, classes):
@@ -50,6 +52,13 @@ def save_data(config, data):
     torch.save(data, location)
 
 
+def add_data(data, config, acc=None, loss=None):
+    if config.fold not in data:
+        data[config.fold] = {'acc': [], 'loss': []}
+    data[config.fold]['acc'].append(acc)
+    data[config.fold]['loss'].append(loss)
+
+
 def train_net(config, dataset, checkpoint=None):
     device = torch.device('cpu' if cuda.is_available() and config.gpu else 'cpu')
     net_config = importlib.import_module(f'net_configurations.{config.model_config}').CONFIG
@@ -60,37 +69,47 @@ def train_net(config, dataset, checkpoint=None):
     data = load_data(config)
     if checkpoint is not None:
         net.load_state_dict(checkpoint['model_state_dict'])
-        curr_epoch = checkpoint['epoch']
+        curr_epoch = checkpoint['epoch'] + 1
         best_loss = checkpoint['loss']
 
     net.to(device=device)
 
     data_loader = DataLoader(dataset=dataset,
-                             batch_size=net_config['batch_size'],
+                             batch_size=config.batch_size,
                              drop_last=True,
                              num_workers=config.num_threads)
 
     optimizer = eval(net_config['optimizer']['name'])(net.parameters(), **net_config['optimizer']['params'])
     criterion = eval(net_config['loss'])()
 
+    prefix = ''
+    if config.folds > 1:
+        prefix = f'Fold {config.fold}, '
+
+    net.train()
     for epoch in range(curr_epoch, config.max_epochs):
-        net.train()
+        with tqdm(data_loader, unit="batch") as tq_loader:
+            for image, label in tq_loader:
+                tq_loader.set_description(f'{prefix}Epoch {epoch}')
+                optimizer.zero_grad()
+                image, label = image.to(device=device), label.to(device=device)
 
-        for image, label in data_loader:
-            optimizer.zero_grad()
-            image = image.to(device=device, dtype=torch.float32)
-            label = label.to(device=device, dtype=torch.float32)
+                prediction = net(image)
 
-            prediction = net(image)
+                acc = metrics.calc_acc(prediction, label)
+                loss = criterion(prediction, label)
+                if loss < best_loss and epoch > 0:
+                    best_loss = loss.item()
+                    save_checkpoint(config, net, epoch, best_loss, idx=None, best=True)
 
-            loss = criterion(prediction, label)
-
-            if loss < best_loss:
-                best_loss = loss.item()
-
-            loss.backward()
-            optimizer.step()
+                loss.backward()
+                optimizer.step()
+                add_data(data, config, acc, loss.item())
+                tq_loader.set_postfix(loss=loss.item(), acc=acc)
 
         if epoch % config.save_every == 0:
             save_checkpoint(config, net, epoch, best_loss, dataset.get_index())
-        save_data(config, data)
+            save_data(config, data)
+
+    save_data(config, data)
+    del net
