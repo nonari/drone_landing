@@ -1,10 +1,15 @@
+from os import makedirs, path
+from shutil import rmtree
 from config import Config
 from training import train_net
 import fire
+from torch.utils.data import SubsetRandomSampler
 from dataloader import TUGrazDataset
 from glob import glob
 from os import path
 import torch
+from sklearn.model_selection import KFold
+import random
 
 
 def last_checkpoint(config):
@@ -16,6 +21,28 @@ def last_checkpoint(config):
     return paths[-1]
 
 
+def folds_strategy(config):
+    idx_seed = random.randint(0, 9999)
+    config.fold = 0
+    checkpoint = None
+
+    dataset = TUGrazDataset(config)
+    if config.resume:
+        checkpoint_path = last_checkpoint(config)
+        checkpoint = torch.load(checkpoint_path)
+        config.fold = checkpoint['fold']
+        idx_seed = checkpoint['idx_seed']
+
+    kfold = KFold(n_splits=config.folds, shuffle=True, random_state=idx_seed)
+    folds = list(kfold.split(dataset))
+
+    for fold, (train_idx, _) in enumerate(folds[config.fold:]):
+        sampler = SubsetRandomSampler(train_idx)
+        config.fold = fold
+        train_net(config, dataset, idx_seed, sampler=sampler, checkpoint=checkpoint)
+        checkpoint = None
+
+
 def train(**kwargs):
     opt = Config()
 
@@ -23,22 +50,27 @@ def train(**kwargs):
     for k_, v_ in kwargs.items():
         setattr(opt, k_, v_)
 
-    idx = None
-    opt.fold = 0
-    checkpoint = None
+    # create directories
+    if not opt.resume:
+        if path.exists(opt.save_path):
+            if opt.override:
+                rmtree(opt.save_path)
+            else:
+                r = input(f'Will delete {opt.save_path}. Proceed? y/n')
+                if r == 'y':
+                    rmtree(opt.save_path)
+                else:
+                    print('!!!! Execution aborted !!!!')
+                    exit(0)
 
-    if opt.resume:
-        checkpoint_path = last_checkpoint(opt)
-        checkpoint = torch.load(checkpoint_path)
-        opt.fold = checkpoint['fold']
-        idx = checkpoint['idx']
+    makedirs(opt.save_path, exist_ok=True)
+    makedirs(opt.model_path, exist_ok=True)
+    makedirs(opt.checkpoint_path, exist_ok=True)
+    makedirs(opt.test_path, exist_ok=True)
+    makedirs(opt.train_path, exist_ok=True)
 
-    dataset = TUGrazDataset(opt, folds=opt.folds, shuffle=True, idx_ord=idx)
-    for f in range(opt.fold, opt.folds):
-        opt.fold = f
-        dataset.change_fold(f)
-        train_net(opt, dataset, checkpoint=checkpoint)
-        checkpoint = None
+    if opt.folds > 1:
+        folds_strategy(opt)
 
 
 if __name__ == '__main__':

@@ -23,7 +23,7 @@ def configure_net(net_config, classes):
     return net
 
 
-def save_checkpoint(config, net, epoch, loss, idx, best=False):
+def save_checkpoint(config, net, epoch, loss, idx_seed, best=False):
     if best:
         location = path.join(config.model_path, f'{config.fold}')
     else:
@@ -34,7 +34,7 @@ def save_checkpoint(config, net, epoch, loss, idx, best=False):
         'model_state_dict': net.state_dict(),
         'loss': loss,
         'fold': config.fold,
-        'idx': idx
+        'idx_seed': idx_seed
     }, location)
 
 
@@ -59,7 +59,7 @@ def add_data(data, config, acc=None, loss=None):
     data[config.fold]['loss'].append(loss)
 
 
-def train_net(config, dataset, checkpoint=None):
+def train_net(config, dataset, idx_seed, sampler=None, checkpoint=None):
     device = torch.device('cpu' if cuda.is_available() and config.gpu else 'cpu')
     net_config = importlib.import_module(f'net_configurations.{config.model_config}').CONFIG
     net = configure_net(net_config, dataset.classes())
@@ -75,6 +75,7 @@ def train_net(config, dataset, checkpoint=None):
     net.to(device=device)
 
     data_loader = DataLoader(dataset=dataset,
+                             sampler=sampler,
                              batch_size=config.batch_size,
                              drop_last=True,
                              num_workers=config.num_threads)
@@ -100,7 +101,7 @@ def train_net(config, dataset, checkpoint=None):
                 loss = criterion(prediction, label)
                 if loss < best_loss and epoch > 0:
                     best_loss = loss.item()
-                    save_checkpoint(config, net, epoch, best_loss, idx=None, best=True)
+                    save_checkpoint(config, net, epoch, best_loss, idx_seed, best=True)
 
                 loss.backward()
                 optimizer.step()
@@ -108,7 +109,7 @@ def train_net(config, dataset, checkpoint=None):
                 tq_loader.set_postfix(loss=loss.item(), acc=acc)
 
         if epoch % config.save_every == 0:
-            save_checkpoint(config, net, epoch, best_loss, dataset.get_index())
+            save_checkpoint(config, net, epoch, best_loss, idx_seed)
             save_data(config, data)
 
     save_data(config, data)

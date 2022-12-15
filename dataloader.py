@@ -66,7 +66,7 @@ def label_to_tensor(label, color_mask):
 
 
 class TUGrazDataset(Dataset):
-    def __init__(self, options, folds=1, shuffle=False, idx_ord=None):
+    def __init__(self, options):
         subset = 'training_set' if options.train else 'testing_set'
         images_root = path.join(options.tugraz_root, subset, options.tugraz_images_loc)
         labels_root = path.join(options.tugraz_root, subset, f'gt/semantic/{options.tugraz_labels_loc}')
@@ -82,58 +82,30 @@ class TUGrazDataset(Dataset):
         net_config = importlib.import_module(f'net_configurations.{options.model_config}').CONFIG
         t_tugraz = transform_tugraz(net_config['input_size'])
 
-        self._idx = np.arange(image_paths.shape[0])
-        if idx_ord is not None:
-            image_paths = image_paths[idx_ord]
-            label_paths = label_paths[idx_ord]
-            self._idx = idx_ord
-        elif shuffle:
-            idx = np.arange(image_paths.shape[0])
-            np.random.shuffle(idx)
-            image_paths = image_paths[idx]
-            label_paths = label_paths[idx]
-            self._idx = idx
-
         print('Loading images...')
         self.images = []
-        for im_path in image_paths[:-380]:
+        for im_path in image_paths:
             im = Image.open(im_path)
             self.images.append(t_tugraz(im))
             im.close()
 
         print('Loading labels...')
         self.labels = []
-        for lab_path in label_paths[:-360]:
+        for lab_path in label_paths:
             lab = Image.open(lab_path)
             lab_res = lab.resize(net_config['input_size'], Image.NEAREST)
             lab.close()
             self.labels.append(lab_res)
 
-        self._part_len = self.images.__len__() // folds
-        self._folds = folds
-        if folds > 1:
-            self._len = self._part_len * (folds - 1)
-        else:
-            self._len = self.image.__len__()
-        self._fold = 0
-
-    def change_fold(self, k):
-        self._fold = k
-
-    def get_index(self):
-        return self._idx
-
     def classes(self):
         return 24
 
     def __len__(self):
-        return self._len
+        return self.images.__len__()
 
     def __getitem__(self, item):
-        shifted = (item + self._fold * self._part_len) % (self._part_len * self._folds)
-        print(item, '->', shifted)
-        return self.images[shifted], label_to_tensor_v2(self.labels[shifted],
-                                                        tugraz_color_keys[:, None, None]).moveaxis(2, 0)
+        return self.images[item], label_to_tensor_v2(self.labels[item],
+                                                     tugraz_color_keys[:, None, None]).moveaxis(2, 0)
 
 
 if __name__ == '__main__':

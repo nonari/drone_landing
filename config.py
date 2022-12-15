@@ -1,4 +1,4 @@
-from os import makedirs, path
+from os import path
 
 
 class Config(object):
@@ -34,13 +34,7 @@ class Config(object):
 
         # training
         self.batch_size = 1
-        self.resume = True
-        self.folds = 4
-        self.max_epochs = 4
-
-        # create directories
-        makedirs(self.save_path, exist_ok=True)
-        makedirs(self.model_path, exist_ok=True)
-        makedirs(self.checkpoint_path, exist_ok=True)
-        makedirs(self.test_path, exist_ok=True)
-        makedirs(self.train_path, exist_ok=True)
+        self.resume = False
+        self.override = False
+        self.folds = 5
+        self.max_epochs = 100
