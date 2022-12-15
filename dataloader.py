@@ -3,7 +3,7 @@ import numpy as np
 from torch.utils.data import DataLoader, Dataset
 from config import Config
 from torchvision import transforms, datasets
-from torchvision.transforms import InterpolationMode
+# from torchvision.transforms import InterpolationMode
 import torch
 from os import path
 from glob import glob
@@ -13,7 +13,7 @@ import importlib
 
 def transform_tugraz(size):
     return transforms.Compose([
-        transforms.Resize(size, interpolation=InterpolationMode.BILINEAR),
+        transforms.Resize(size, interpolation=Image.BILINEAR),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406],
                              std=[0.229, 0.224, 0.225])
@@ -105,7 +105,7 @@ class TUGrazDataset(Dataset):
 
     def __getitem__(self, item):
         return self.images[item], label_to_tensor_v2(self.labels[item],
-                                                     tugraz_color_keys[:, None, None]).moveaxis(2, 0)
+                                                     tugraz_color_keys[:, None, None]).movedim(2, 0)
 
 
 if __name__ == '__main__':

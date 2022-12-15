@@ -60,7 +60,7 @@ def add_data(data, config, acc=None, loss=None):
 
 
 def train_net(config, dataset, idx_seed, sampler=None, checkpoint=None):
-    device = torch.device('cpu' if cuda.is_available() and config.gpu else 'cpu')
+    device = torch.device('cuda' if cuda.is_available() and config.gpu else 'cpu')
     net_config = importlib.import_module(f'net_configurations.{config.model_config}').CONFIG
     net = configure_net(net_config, dataset.classes())
 
