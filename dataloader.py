@@ -54,15 +54,41 @@ tugraz_color_keys = np.asarray([
 
 def label_to_tensor_v2(label, keys):
     v = np.asarray([256 * 256, 256, 1])
-    one_key = np.sum(keys[:, 0, 0, :]*v, axis=1)
-    one_ch = np.sum(label * np.asarray(v)[None, None], axis=2)
+    one_key = np.sum(keys * v, axis=1)
+    one_ch = np.sum(label * v[None, None], axis=2)
     sparse = np.equal(one_key[None, None], one_ch[..., None]).astype(np.float32)
-    return torch.tensor(sparse)
+    return torch.tensor(sparse).movedim(2, 0)
+
+
+def label_to_tensor_v3(label, keys, device='cuda'):
+    v = torch.tensor([256 * 256, 256, 1]).unsqueeze(dim=0).to(device)
+    keys = torch.tensor(keys).to(device)
+    one_key = (keys * v).sum(dim=1).reshape(1, 1, -1)
+    label = torch.tensor(label).to(device)
+    one_ch = (label * keys.unsqueeze(dim=0)).sum(dim=2, keepdims=True)
+    sparse = (one_key == one_ch)
+    return sparse.movedim(2, 0)
 
 
 def label_to_tensor(label, color_mask):
     sparse_mask = np.all(np.equal(label, color_mask), axis=3).astype(np.float32)
     return torch.tensor(sparse_mask)
+
+
+def prepare_image(transformation):
+    def f(im_path):
+        im_orig = Image.open(im_path)
+        im_tensor = transformation(im_orig)
+        im_orig.close()
+        return im_tensor
+    return f
+
+
+def label_transformation(color_keys, new_size):
+    def f(label):
+        lab_res = label.resize(new_size, Image.NEAREST)
+        return label_to_tensor_v2(lab_res, color_keys)
+    return f
 
 
 class TUGrazDataset(Dataset):
@@ -76,36 +102,23 @@ class TUGrazDataset(Dataset):
         image_paths = sorted(image_paths, key=lambda x: int(path.basename(x)[:3]))
         label_paths = sorted(label_paths, key=lambda x: int(path.basename(x)[:3]))
 
-        image_paths = np.asarray(image_paths)
-        label_paths = np.asarray(label_paths)
+        self._image_paths = np.asarray(image_paths)
+        self._label_paths = np.asarray(label_paths)
 
         net_config = importlib.import_module(f'net_configurations.{options.model_config}').CONFIG
         t_tugraz = transform_tugraz(net_config['input_size'])
 
-        print('Loading images...')
-        self.images = []
-        for im_path in image_paths:
-            im = Image.open(im_path)
-            self.images.append(t_tugraz(im))
-            im.close()
-
-        print('Loading labels...')
-        self.labels = []
-        for lab_path in label_paths:
-            lab = Image.open(lab_path)
-            lab_res = lab.resize(net_config['input_size'], Image.NEAREST)
-            lab.close()
-            self.labels.append(lab_res)
+        self._prepare_im = prepare_image(t_tugraz)
+        self._prepare_lab = prepare_image(label_transformation(tugraz_color_keys, net_config['input_size']))
 
     def classes(self):
         return 24
 
     def __len__(self):
-        return self.images.__len__()
+        return self._image_paths.__len__()
 
     def __getitem__(self, item):
-        return self.images[item], label_to_tensor_v2(self.labels[item],
-                                                     tugraz_color_keys[:, None, None]).movedim(2, 0)
+        return self._prepare_im(self._image_paths[item]),  self._prepare_lab(self._label_paths[item])
 
 
 if __name__ == '__main__':
