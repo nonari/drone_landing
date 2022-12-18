@@ -1,16 +1,15 @@
 CONFIG = {
     'net': 'unet',
-    'input_size': (384, 384),
+    'input_size': (704, 1024),
     'encoder': 'resnet34',
     'pretrained': True,
     'loss': 'nn.BCEWithLogitsLoss',
     'optimizer': {
-        'name': 'optim.SGD',
+        'name': 'optim.RMSprop',
         'params': {
-            'lr': 1e-3,
-            'nesterov': True,
+            'lr': 1e-4,
             'momentum': 0.9,
-            'weight_decay': 1e-4
+            'weight_decay': 1e-5
           }
     },
     'lr_scheduler': {

@@ -89,6 +89,7 @@ def train_net(config, dataset, idx_seed, sampler=None, checkpoint=None):
 
     net.train()
     for epoch in range(curr_epoch, config.max_epochs):
+        loss_epoch = 0
         with tqdm(data_loader, unit="batch") as tq_loader:
             for image, label in tq_loader:
                 tq_loader.set_description(f'{prefix}Epoch {epoch}')
@@ -97,16 +98,17 @@ def train_net(config, dataset, idx_seed, sampler=None, checkpoint=None):
 
                 prediction = net(image)
 
-                acc = metrics.calc_acc(prediction, label)
-                loss = criterion(prediction, label)
-                if loss < best_loss and epoch > 0:
-                    best_loss = loss.item()
-                    save_checkpoint(config, net, epoch, best_loss, idx_seed, best=True)
-
+                acc, loss = metrics.calc_acc(prediction, label), criterion(prediction, label)
+                loss_epoch = loss_epoch + loss.item()
                 loss.backward()
                 optimizer.step()
                 add_data(data, config, acc, loss.item())
                 tq_loader.set_postfix(loss=loss.item(), acc=acc)
+
+        loss_epoch /= tq_loader.__len__()
+        if loss_epoch < best_loss and epoch > 0:
+            best_loss = loss.item()
+            save_checkpoint(config, net, epoch, best_loss, idx_seed, best=True)
 
         if epoch % config.save_every == 0:
             save_checkpoint(config, net, epoch, best_loss, idx_seed)
