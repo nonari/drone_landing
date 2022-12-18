@@ -10,6 +10,8 @@ from os import path
 import torch
 from sklearn.model_selection import KFold
 import random
+from glob import glob
+from testing import test_net
 
 
 def last_checkpoint(config):
@@ -73,6 +75,32 @@ def train(**kwargs):
         folds_strategy(opt)
 
 
+def test(**kwargs):
+    opt = Config()
+
+    # overwrite options from commandline
+    for k_, v_ in kwargs.items():
+        setattr(opt, k_, v_)
+
+    if opt.folds > 1:
+        folds_test()
+
+
+def folds_test(config):
+    dataset = TUGrazDataset(config)
+    model_paths = glob(path.join(config.model_path, '*'))
+    model_paths = sorted(model_paths, key=lambda p: int(path.basename(p)))
+
+    seed_info = torch.load(model_paths[0])
+
+    kfold = KFold(n_splits=config.folds, shuffle=True, random_state=seed_info['idx_seed'])
+    folds = list(kfold.split(dataset))
+
+    for fold, (_, test_idx) in enumerate(folds):
+        sampler = SubsetRandomSampler(test_idx)
+        fold_info = torch.load(model_paths[fold])
+        test_net(config, dataset, fold_info, sampler=sampler)
+
+
 if __name__ == '__main__':
     fire.Fire()
-
