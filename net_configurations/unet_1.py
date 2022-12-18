@@ -7,7 +7,7 @@ CONFIG = {
     'optimizer': {
         'name': 'optim.SGD',
         'params': {
-            'lr': 1e-4,
+            'lr': 1e-3,
             'nesterov': True,
             'momentum': 0.9,
             'weight_decay': 1e-4
