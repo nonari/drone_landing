@@ -65,8 +65,8 @@ def label_to_tensor_v3(label, keys, device='cuda'):
     keys = torch.tensor(keys).to(device)
     one_key = (keys * v).sum(dim=1).reshape(1, 1, -1)
     label = torch.tensor(label).to(device)
-    one_ch = (label * keys.unsqueeze(dim=0)).sum(dim=2, keepdims=True)
-    sparse = (one_key == one_ch)
+    one_ch = (label * v.unsqueeze(dim=1)).sum(dim=2, keepdims=True)
+    sparse = (one_key == one_ch).float()
     return sparse.movedim(2, 0)
 
 
@@ -84,10 +84,10 @@ def prepare_image(transformation):
     return f
 
 
-def label_transformation(color_keys, new_size):
+def label_transformation(color_keys, new_size, device):
     def f(label):
         lab_res = label.resize(new_size, Image.NEAREST)
-        return label_to_tensor_v2(lab_res, color_keys)
+        return label_to_tensor_v3(np.asarray(lab_res), color_keys, device)
     return f
 
 
@@ -109,7 +109,9 @@ class TUGrazDataset(Dataset):
         t_tugraz = transform_tugraz(net_config['input_size'])
 
         self._prepare_im = prepare_image(t_tugraz)
-        self._prepare_lab = prepare_image(label_transformation(tugraz_color_keys, net_config['input_size']))
+        device = torch.device('cuda' if torch.cuda.is_available() and options.gpu else 'cpu')
+        self._prepare_lab = prepare_image(label_transformation(
+            tugraz_color_keys, net_config['input_size'], device))
 
     def classes(self):
         return 24
