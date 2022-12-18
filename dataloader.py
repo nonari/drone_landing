@@ -87,7 +87,7 @@ def prepare_image(transformation):
 def label_transformation(color_keys, new_size, device):
     def f(label):
         lab_res = label.resize(new_size, Image.NEAREST)
-        return label_to_tensor_v3(np.asarray(lab_res), color_keys, device)
+        return label_to_tensor_v2(np.asarray(lab_res), color_keys)
     return f
 
 
