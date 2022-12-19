@@ -23,26 +23,50 @@ def last_checkpoint(config):
     return paths[-1]
 
 
+def last_executions(config):
+    paths = glob(config.checkpoint_path + '/*')
+    if len(paths) == 0:
+        raise Exception(f'No checkpoint found at {config.checkpoint_path}, check path or disable -resume')
+
+    paths = sorted(paths, key=lambda e: (path.basename(e).split('_')[0], path.basename(e).split('_')[1]))
+
+    # Get last of each fold
+    lasts = []
+    last_fold = -1
+    for p in paths:
+        fold = path.basename(p).split('_')[0]
+        if fold != last_fold and last_fold >= 0:
+            lasts.append(p)
+        else:
+            last_fold = fold
+
+    return lasts
+
+
 def folds_strategy(config):
     idx_seed = random.randint(0, 9999)
     config.fold = 0
-    checkpoint = None
 
     dataset = TUGrazDataset(config)
+    checkpoint_paths = None
     if config.resume:
-        checkpoint_path = last_checkpoint(config)
-        checkpoint = torch.load(checkpoint_path)
-        config.fold = checkpoint['fold']
+        checkpoint_paths = last_executions(config)
+        checkpoint = torch.load(checkpoint_paths[0])
         idx_seed = checkpoint['idx_seed']
 
     kfold = KFold(n_splits=config.folds, shuffle=True, random_state=idx_seed)
     folds = list(kfold.split(dataset))
 
-    for fold, (train_idx, _) in enumerate(folds[config.fold:]):
-        sampler = SubsetRandomSampler(train_idx)
-        config.fold = fold
-        train_net(config, dataset, idx_seed, sampler=sampler, checkpoint=checkpoint)
+    for fold, (train_idx, _) in enumerate(folds):
         checkpoint = None
+        if len(checkpoint_paths) > 0:
+            checkpoint = torch.load(checkpoint_paths.pop(0))
+            if checkpoint['epoch'] >= config.max_epochs:
+                print(f'Fold {fold} was complete.')
+                continue
+        config.fold = fold
+        sampler = SubsetRandomSampler(train_idx)
+        train_net(config, dataset, idx_seed, sampler=sampler, checkpoint=checkpoint)
 
 
 def train(**kwargs):

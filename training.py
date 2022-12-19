@@ -43,7 +43,7 @@ def load_data(config):
     if path.exists(location):
         data = torch.load(location)
     else:
-        data = {}
+        data = {'batch_size': config.batch_size}
     return data
 
 
@@ -52,11 +52,12 @@ def save_data(config, data):
     torch.save(data, location)
 
 
-def add_data(data, config, acc=None, loss=None):
+def add_data(data, config, epoch, acc=None, loss=None):
     if config.fold not in data:
-        data[config.fold] = {'acc': [], 'loss': []}
+        data[config.fold] = {'acc': [], 'loss': [], 'epoch': -1}
     data[config.fold]['acc'].append(acc)
     data[config.fold]['loss'].append(loss)
+    data[config.fold]['epoch'] = epoch
 
 
 def train_net(config, dataset, idx_seed, sampler=None, checkpoint=None):
@@ -102,7 +103,7 @@ def train_net(config, dataset, idx_seed, sampler=None, checkpoint=None):
                 loss_epoch = loss_epoch + loss.item()
                 loss.backward()
                 optimizer.step()
-                add_data(data, config, acc, loss.item())
+                add_data(data, config, epoch, acc, loss.item())
                 tq_loader.set_postfix(loss=loss.item(), acc=acc)
 
         loss_epoch /= tq_loader.__len__()
@@ -112,7 +113,9 @@ def train_net(config, dataset, idx_seed, sampler=None, checkpoint=None):
 
         if epoch % config.save_every == 0:
             save_checkpoint(config, net, epoch, best_loss, idx_seed)
-            save_data(config, data)
+        elif epoch == (config.max_epochs - 1):
+            save_checkpoint(config, net, epoch, best_loss, idx_seed)
 
-    save_data(config, data)
+        save_data(config, data)
+
     del net
