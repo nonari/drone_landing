@@ -34,7 +34,7 @@ def last_executions(config):
     lasts = []
     last_fold = -1
     for p in paths:
-        fold = path.basename(p).split('_')[0]
+        fold = int(path.basename(p).split('_')[0])
         if fold != last_fold and last_fold >= 0:
             lasts.append(p)
         else:
