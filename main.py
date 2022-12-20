@@ -32,14 +32,17 @@ def last_executions(config):
 
     # Get last of each fold
     lasts = []
-    last_fold = -1
-    for p in paths:
-        fold = int(path.basename(p).split('_')[0])
-        if fold != last_fold and last_fold >= 0:
-            lasts.append(p)
-        else:
-            last_fold = fold
-    lasts.append(paths[-1])
+    last_fold = int(path.basename(paths[0]).split('_')[0])
+    if len(paths) == 1:
+        lasts.append(paths[0])
+    else:
+        for i, p in enumerate(paths[1:]):
+            curr_fold = int(path.basename(p).split('_')[0])
+            if curr_fold > last_fold:
+                lasts.append(paths[i])
+            if (i+2) == len(paths):
+                lasts.append(paths[i+1])
+            last_fold = curr_fold
 
     return lasts
 

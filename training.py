@@ -60,10 +60,11 @@ def add_data(data, config, epoch, acc=None, loss=None):
     if 'epoch' not in data[config.fold]:
         pass
     # If resume is repeating epochs
-    elif data[config.fold]['epoch'] < epoch:
-        diff = (data[config.fold]['epoch'] - epoch) * len(acc)
-        data[config.fold]['acc'] = data[config.fold]['acc'][:-diff]
-        data[config.fold]['loss'] = data[config.fold]['loss'][:-diff]
+    elif data[config.fold]['epoch'] >= epoch:
+        epoch_len = config.datalen * (config.folds - 1) // config.folds // config.batch_size
+        last = epoch_len * epoch
+        data[config.fold]['acc'] = data[config.fold]['acc'][:last]
+        data[config.fold]['loss'] = data[config.fold]['loss'][:last]
     data[config.fold]['acc'].append(acc)
     data[config.fold]['loss'].append(loss)
     data[config.fold]['epoch'] = epoch
@@ -84,6 +85,7 @@ def train_net(config, dataset, idx_seed, sampler=None, checkpoint=None):
 
     net.to(device=device)
 
+    config.datalen = len(dataset)
     data_loader = DataLoader(dataset=dataset,
                              sampler=sampler,
                              batch_size=config.batch_size,
