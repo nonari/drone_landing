@@ -39,6 +39,7 @@ def last_executions(config):
             lasts.append(p)
         else:
             last_fold = fold
+    lasts.append(paths[-1])
 
     return lasts
 
@@ -48,7 +49,7 @@ def folds_strategy(config):
     config.fold = 0
 
     dataset = TUGrazDataset(config)
-    checkpoint_paths = None
+    checkpoint_paths = []
     if config.resume:
         checkpoint_paths = last_executions(config)
         checkpoint = torch.load(checkpoint_paths[0])
@@ -61,7 +62,7 @@ def folds_strategy(config):
         checkpoint = None
         if len(checkpoint_paths) > 0:
             checkpoint = torch.load(checkpoint_paths.pop(0))
-            if checkpoint['epoch'] >= config.max_epochs:
+            if checkpoint['epoch'] >= config.max_epochs - 1:
                 print(f'Fold {fold} was complete.')
                 continue
         config.fold = fold
@@ -107,7 +108,7 @@ def test(**kwargs):
         setattr(opt, k_, v_)
 
     if opt.folds > 1:
-        folds_test()
+        folds_test(opt)
 
 
 def folds_test(config):
@@ -115,14 +116,16 @@ def folds_test(config):
     model_paths = glob(path.join(config.model_path, '*'))
     model_paths = sorted(model_paths, key=lambda p: int(path.basename(p)))
 
-    seed_info = torch.load(model_paths[0])
+    device = torch.device('cuda' if torch.cuda.is_available() and config.gpu else 'cpu')
+    seed_info = torch.load(model_paths[0], map_location=device)
 
     kfold = KFold(n_splits=config.folds, shuffle=True, random_state=seed_info['idx_seed'])
     folds = list(kfold.split(dataset))
 
     for fold, (_, test_idx) in enumerate(folds):
+        config.fold = fold
         sampler = SubsetRandomSampler(test_idx)
-        fold_info = torch.load(model_paths[fold])
+        fold_info = torch.load(model_paths[fold], map_location=device)
         test_net(config, dataset, fold_info, sampler=sampler)
 
 

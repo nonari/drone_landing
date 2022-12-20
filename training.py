@@ -55,6 +55,15 @@ def save_data(config, data):
 def add_data(data, config, epoch, acc=None, loss=None):
     if config.fold not in data:
         data[config.fold] = {'acc': [], 'loss': [], 'epoch': -1}
+
+    # Delete this tomorrow
+    if 'epoch' not in data[config.fold]:
+        pass
+    # If resume is repeating epochs
+    elif data[config.fold]['epoch'] < epoch:
+        diff = (data[config.fold]['epoch'] - epoch) * len(acc)
+        data[config.fold]['acc'] = data[config.fold]['acc'][:-diff]
+        data[config.fold]['loss'] = data[config.fold]['loss'][:-diff]
     data[config.fold]['acc'].append(acc)
     data[config.fold]['loss'].append(loss)
     data[config.fold]['epoch'] = epoch
