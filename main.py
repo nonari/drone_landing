@@ -28,7 +28,7 @@ def last_executions(config):
     if len(paths) == 0:
         raise Exception(f'No checkpoint found at {config.checkpoint_path}, check path or disable -resume')
 
-    paths = sorted(paths, key=lambda e: (path.basename(e).split('_')[0], path.basename(e).split('_')[1]))
+    paths = sorted(paths, key=lambda e: (int(path.basename(e).split('_')[0]), int(path.basename(e).split('_')[1])))
 
     # Get last of each fold
     lasts = []
