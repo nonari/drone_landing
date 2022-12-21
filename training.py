@@ -56,11 +56,8 @@ def add_data(data, config, epoch, acc=None, loss=None):
     if config.fold not in data:
         data[config.fold] = {'acc': [], 'loss': [], 'epoch': -1}
 
-    # Delete this tomorrow
-    if 'epoch' not in data[config.fold]:
-        pass
     # If resume is repeating epochs
-    elif data[config.fold]['epoch'] >= epoch:
+    if data[config.fold]['epoch'] >= epoch:
         epoch_len = config.datalen * (config.folds - 1) // config.folds // config.batch_size
         last = epoch_len * epoch
         data[config.fold]['acc'] = data[config.fold]['acc'][:last]

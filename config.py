@@ -2,9 +2,10 @@ from os import path
 
 
 class Config(object):
-    def __init__(self):
+    def __init__(self, name=None):
         # basic options, project name should be same as dataset directory name
-        self.name = 'UNet_test1'
+        # Delete this shit
+        self.name = name if name is not None else 'UNet_test11'
         self.dataset_name = 'TU_Graz'
         self.comment = 'Basic test'
 

@@ -74,7 +74,8 @@ def folds_strategy(config):
 
 
 def train(**kwargs):
-    opt = Config()
+    name = kwargs['name']
+    opt = Config(name=name)
 
     # overwrite options from commandline
     for k_, v_ in kwargs.items():
