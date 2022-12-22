@@ -30,8 +30,10 @@ def test_net(config, dataset, fold_info, sampler=None):
     labels = np.arange(0, dataset.classes())
     conf = np.zeros((dataset.classes(), dataset.classes()))
     for idx, (image, label) in enumerate(data_loader):
-        # prediction = net(image)
-        prediction = torch.rand((1, np.random.randint(0, 25), 704, 1024))
+        image = image.to(device)
+        label = label.to(device)
+        prediction = net(image)
+        # prediction = torch.rand((1, np.random.randint(0, 25), 704, 1024))
         pred_label = prediction.argmax(dim=1).squeeze().detach().cpu().numpy().astype(np.uint)
         true_label = label.argmax(dim=1).squeeze().detach().cpu().numpy().astype(np.uint)
         pred_mask = tugraz_color_keys[pred_label]
@@ -43,7 +45,7 @@ def test_net(config, dataset, fold_info, sampler=None):
 
         acc += metrics.accuracy_score(true_label, pred_label, normalize=True)
         jcc = jcc + metrics.jaccard_score(true_label, pred_label, labels=labels, average=None, zero_division=1.0)
-        pre = pre + metrics.precision_score(true_label, pred_label, labels=labels, average='macro')
+        pre = pre + metrics.precision_score(true_label, pred_label, labels=labels, average='macro', zero_division=1.0)
         f1 = f1 + metrics.f1_score(true_label, pred_label, labels=labels, average='macro', zero_division=1.0)
         conf += metrics.confusion_matrix(true_label, pred_label, labels=labels)
 
@@ -55,6 +57,7 @@ def test_net(config, dataset, fold_info, sampler=None):
     # confusion gets normalization later
 
     fold_results = {'confusion': conf, 'acc': acc, 'jcc': jcc, 'pre': pre, 'f1': f1}
+    print(fold_results)
 
     data = torch.load(path.join(config.train_path, 'training_results.json'), map_location=device)
     epoch = config.max_epochs if 'epoch' not in data[0] else data[config.fold]['epoch']
@@ -95,5 +98,5 @@ def plot_and_save(image, predicted_label, im_label, idx, config):
     ax[1].set_title('Prediction')
     ax[2].set_title(f'Ground Truth')
     plt.subplots_adjust(top=0.89)
-    plt.savefig(path.join(config.test_path, f'{idx}.jpg'))
+    plt.savefig(path.join(config.test_path, f'{(config.fold+1)*idx}.jpg'))
     plt.cla(), plt.clf()

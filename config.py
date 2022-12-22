@@ -2,10 +2,9 @@ from os import path
 
 
 class Config(object):
-    def __init__(self, name=None):
+    def __init__(self, name):
         # basic options, project name should be same as dataset directory name
-        # Delete this shit
-        self.name = name if name is not None else 'UNet_test11'
+        self.name = name
         self.dataset_name = 'TU_Graz'
         self.comment = 'Basic test'
 
@@ -26,12 +25,12 @@ class Config(object):
         self.num_threads = 2
 
         # network
-        self.model_config = 'unet_1'
+        self.model_config = 'unet_resnet34'
         self.gpu = True                  # use GPU?
         self.classes = None
 
         # save
-        self.save_every = 2  # epochs
+        self.save_every = 50  # epochs
 
         # training
         self.batch_size = 1
