@@ -12,6 +12,7 @@ from sklearn.model_selection import KFold
 import random
 from glob import glob
 from testing import test_net
+import numpy as np
 
 
 def last_checkpoint(config):
@@ -105,7 +106,8 @@ def train(**kwargs):
 
 
 def test(**kwargs):
-    opt = Config()
+    name = kwargs['name']
+    opt = Config(name=name)
 
     # overwrite options from commandline
     for k_, v_ in kwargs.items():
@@ -126,11 +128,30 @@ def folds_test(config):
     kfold = KFold(n_splits=config.folds, shuffle=True, random_state=seed_info['idx_seed'])
     folds = list(kfold.split(dataset))
 
+    results = []
     for fold, (_, test_idx) in enumerate(folds):
         config.fold = fold
         sampler = SubsetRandomSampler(test_idx)
         fold_info = torch.load(model_paths[fold], map_location=device)
-        test_net(config, dataset, fold_info, sampler=sampler)
+        result = test_net(config, dataset, fold_info, sampler=sampler)
+        results.append(result)
+    summarize_results(results)
+
+
+def summarize_results(results, num_classes, classes=None):
+    acc = [r['acc'] for r in results]
+    jcc = [r['acc'] for r in results]
+    pre = [r['acc'] for r in results]
+    f1 = [r['acc'] for r in results]
+    conf = [r['acc'] for r in results]
+
+    acc = np.vstack(acc)
+    jcc = np.vstack(jcc)
+    pre = np.vstack(pre)
+    f1 = np.vstack(f1)
+
+    conf = np.dstack(conf)
+    conf = conf / conf.astype(np.float).sum(axis=1)
 
 
 if __name__ == '__main__':

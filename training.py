@@ -38,10 +38,15 @@ def save_checkpoint(config, net, epoch, loss, idx_seed, best=False):
     }, location)
 
 
-def load_data(config):
+def load_data(config, curr_epoch):
     location = path.join(config.train_path, 'training_results.json')
     if path.exists(location):
         data = torch.load(location)
+        if data[config.fold]['epoch'] >= curr_epoch:
+            epoch_len = config.datalen * (config.folds - 1) // config.folds // config.batch_size
+            last = epoch_len * curr_epoch
+            data[config.fold]['acc'] = data[config.fold]['acc'][:last]
+            data[config.fold]['loss'] = data[config.fold]['loss'][:last]
     else:
         data = {'batch_size': config.batch_size}
     return data
@@ -54,14 +59,8 @@ def save_data(config, data):
 
 def add_data(data, config, epoch, acc=None, loss=None):
     if config.fold not in data:
-        data[config.fold] = {'acc': [], 'loss': [], 'epoch': -1}
+        data[config.fold] = {'acc': [], 'loss': []}
 
-    # If resume is repeating epochs
-    if data[config.fold]['epoch'] >= epoch:
-        epoch_len = config.datalen * (config.folds - 1) // config.folds // config.batch_size
-        last = epoch_len * epoch
-        data[config.fold]['acc'] = data[config.fold]['acc'][:last]
-        data[config.fold]['loss'] = data[config.fold]['loss'][:last]
     data[config.fold]['acc'].append(acc)
     data[config.fold]['loss'].append(loss)
     data[config.fold]['epoch'] = epoch
@@ -74,11 +73,12 @@ def train_net(config, dataset, idx_seed, sampler=None, checkpoint=None):
 
     best_loss = 1000
     curr_epoch = 0
-    data = load_data(config)
     if checkpoint is not None:
         net.load_state_dict(checkpoint['model_state_dict'])
         curr_epoch = checkpoint['epoch'] + 1
         best_loss = checkpoint['loss']
+
+    data = load_data(config, curr_epoch)
 
     net.to(device=device)
 
@@ -106,7 +106,6 @@ def train_net(config, dataset, idx_seed, sampler=None, checkpoint=None):
                 image, label = image.to(device=device), label.to(device=device)
 
                 prediction = net(image)
-
                 acc, loss = metrics.calc_acc(prediction, label), criterion(prediction, label)
                 loss_epoch = loss_epoch + loss.item()
                 loss.backward()
