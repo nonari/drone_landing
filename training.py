@@ -39,7 +39,7 @@ def save_checkpoint(config, net, epoch, loss, idx_seed, best=False):
 
 
 def load_data(config, curr_epoch):
-    location = path.join(config.train_path, 'training_results.json')
+    location = path.join(config.train_path, 'training_results')
     if path.exists(location):
         data = torch.load(location)
         if data[config.fold]['epoch'] >= curr_epoch:
@@ -53,7 +53,7 @@ def load_data(config, curr_epoch):
 
 
 def save_data(config, data):
-    location = path.join(config.train_path, 'training_results.json')
+    location = path.join(config.train_path, 'training_results')
     torch.save(data, location)
 
 

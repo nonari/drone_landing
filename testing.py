@@ -59,7 +59,7 @@ def test_net(config, dataset, fold_info, sampler=None):
     fold_results = {'confusion': conf, 'acc': acc, 'jcc': jcc, 'pre': pre, 'f1': f1}
     print(fold_results)
 
-    data = torch.load(path.join(config.train_path, 'training_results.json'), map_location=device)
+    data = torch.load(path.join(config.train_path, 'training_results'), map_location=device)
     epoch = config.max_epochs if 'epoch' not in data[0] else data[config.fold]['epoch']
     tacc = np.asarray(data[config.fold]['acc'])[:-1]
     tacc = tacc.reshape((-1, tacc.shape[0] // epoch)).mean(axis=1)

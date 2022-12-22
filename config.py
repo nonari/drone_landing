@@ -17,24 +17,29 @@ class Config(object):
         self.model_path = path.join(self.save_path, 'models')
         self.checkpoint_path = path.join(self.save_path, 'checkpoints')
         self.test_path = path.join(self.save_path, 'test_results')
-        self.train_path = path.join(self.save_path, 'training_results')
+        self.train_path = path.join(self.save_path, 'training_info')
+
+        self.num_threads = 2
 
         # transforms
         self.resize = True
         self.flip = True
-        self.num_threads = 2
 
         # network
         self.model_config = 'unet_resnet34'
-        self.gpu = True                  # use GPU?
-        self.classes = None
+        self.gpu = True
 
-        # save
+        # checkpoint frequency
         self.save_every = 50  # epochs
 
-        # training
-        self.batch_size = 1
+        # continue or expand last execution
         self.resume = False
+
+        # wipe execution dir
         self.override = False
+
+        # this is override on resume
+        self.idx_seed = 42
+        self.batch_size = 1
         self.folds = 5
         self.max_epochs = 100
