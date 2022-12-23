@@ -42,7 +42,7 @@ def load_data(config, curr_epoch):
     location = path.join(config.train_path, 'training_results.json')
     if path.exists(location):
         data = torch.load(location)
-        if data[config.fold]['epoch'] >= curr_epoch:
+        if config.fold in data and data[config.fold]['epoch'] >= curr_epoch:
             epoch_len = config.datalen * (config.folds - 1) // config.folds // config.batch_size
             last = epoch_len * curr_epoch
             data[config.fold]['acc'] = data[config.fold]['acc'][:last]
