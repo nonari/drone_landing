@@ -1,6 +1,6 @@
 from os import makedirs, path
 from shutil import rmtree
-from config import Config
+from config import Config, TestConfig
 from training import train_net
 import fire
 from torch.utils.data import SubsetRandomSampler
@@ -118,7 +118,7 @@ def train(**kwargs):
 
 def test(**kwargs):
     name = kwargs['name']
-    opt = Config(name=name)
+    opt = TestConfig(name=name)
 
     # overwrite options from commandline
     for k_, v_ in kwargs.items():
@@ -134,9 +134,9 @@ def folds_test(config):
     model_paths = sorted(model_paths, key=lambda p: int(path.basename(p)))
 
     device = torch.device('cuda' if torch.cuda.is_available() and config.gpu else 'cpu')
-    seed_info = torch.load(model_paths[0], map_location=device)
+    idx_seed = torch.load(path.join(config.train_path, 'execution_info'))['idx_seed']
 
-    kfold = KFold(n_splits=config.folds, shuffle=True, random_state=seed_info['idx_seed'])
+    kfold = KFold(n_splits=config.folds, shuffle=True, random_state=idx_seed)
     folds = list(kfold.split(dataset))
 
     results = []
@@ -146,9 +146,12 @@ def folds_test(config):
         fold_info = torch.load(model_paths[fold], map_location=device)
         result = test_net(config, dataset, fold_info, sampler=sampler)
         results.append(result)
-    summary = summarize_results(results)
-    print(summary)
-    torch.save(summary, path.join(config.test_path, 'metrics_summary'))
+
+    if config.validation_stats:
+        summary = summarize_results(results)
+        print(summary)
+        torch.load('', )
+        torch.save(summary, path.join(config.test_path, 'metrics_summary'))
 
 
 def summarize_results(results):

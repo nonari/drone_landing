@@ -9,7 +9,7 @@ class Config(object):
         self.comment = 'Basic test'
 
         self.train = True
-        self.tugraz_root = '/semantic_drone_dataset_semantics_v1.1/semantic_drone_dataset/'
+        self.tugraz_root = '/home/nonari/Documentos/semantic_drone_dataset_semantics_v1.1/semantic_drone_dataset/'
         self.tugraz_images_loc = 'low_res_images'
         self.tugraz_labels_loc = 'low_res_label_images'
 
