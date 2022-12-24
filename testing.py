@@ -9,6 +9,7 @@ from os import path
 from matplotlib import pyplot as plt
 import numpy as np
 from dataloader import tugraz_color_keys, imagenet_denorm
+from custom_metrics import f1_score, jaccard_score, precision_score
 
 
 def test_net(config, dataset, fold_info, sampler=None):
@@ -26,7 +27,7 @@ def test_net(config, dataset, fold_info, sampler=None):
                              num_workers=config.num_threads)
 
     arr = np.zeros(dataset.classes())
-    acc, jcc, pre, f1 = 0, arr, arr, arr
+    acc, jcc, pre, f1 = 0, [], [], []
     labels = np.arange(0, dataset.classes())
     conf = np.zeros((dataset.classes(), dataset.classes()))
     for idx, (image, label) in enumerate(data_loader):
@@ -44,16 +45,16 @@ def test_net(config, dataset, fold_info, sampler=None):
         true_label = true_label.flatten()
 
         acc += metrics.accuracy_score(true_label, pred_label, normalize=True)
-        jcc = jcc + metrics.jaccard_score(true_label, pred_label, labels=labels, average=None, zero_division=1.0)
-        pre = pre + metrics.precision_score(true_label, pred_label, labels=labels, average='macro', zero_division=1.0)
-        f1 = f1 + metrics.f1_score(true_label, pred_label, labels=labels, average='macro', zero_division=1.0)
+        jcc.append(jaccard_score(true_label, pred_label, dataset.classes()))
+        pre.append(metrics.precision_score(true_label, pred_label, dataset.classes()))
+        f1.append(f1_score(true_label, pred_label, dataset.classes()))
         conf += metrics.confusion_matrix(true_label, pred_label, labels=labels)
 
     num_samples = len(data_loader)
     acc /= num_samples
-    jcc /= num_samples
-    pre /= num_samples
-    f1 /= num_samples
+    jcc = np.nanmean(np.vstack(jcc), axis=0)
+    pre = np.nanmean(np.vstack(pre), axis=0)
+    f1 = np.nanmean(np.vstack(f1), axis=0)
     # confusion gets normalization later
 
     fold_results = {'confusion': conf, 'acc': acc, 'jcc': jcc, 'pre': pre, 'f1': f1}

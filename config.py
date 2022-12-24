@@ -43,3 +43,11 @@ class Config(object):
         self.batch_size = 1
         self.folds = 5
         self.max_epochs = 100
+
+
+class TestConfig(Config):
+    def __init__(self, name):
+        super().__init__(name)
+        self.generate_images = True
+        self.training_charts = True
+        self.validation_stats = True

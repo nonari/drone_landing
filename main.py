@@ -146,23 +146,28 @@ def folds_test(config):
         fold_info = torch.load(model_paths[fold], map_location=device)
         result = test_net(config, dataset, fold_info, sampler=sampler)
         results.append(result)
-    summarize_results(results)
+    summary = summarize_results(results)
+    print(summary)
+    torch.save(summary, path.join(config.test_path, 'metrics_summary'))
 
 
-def summarize_results(results, num_classes, classes=None):
+def summarize_results(results):
     acc = [r['acc'] for r in results]
     jcc = [r['acc'] for r in results]
     pre = [r['acc'] for r in results]
     f1 = [r['acc'] for r in results]
     conf = [r['acc'] for r in results]
 
-    acc = np.vstack(acc)
-    jcc = np.vstack(jcc)
-    pre = np.vstack(pre)
-    f1 = np.vstack(f1)
+    acc = np.asarray(acc)
+    jcc = np.nanmean(np.vstack(jcc), axis=0)
+    pre = np.nanmean(np.vstack(pre), axis=0)
+    f1 = np.nanmean(np.vstack(f1), axis=0)
 
     conf = np.dstack(conf)
     conf = conf / conf.astype(np.float).sum(axis=1)
+
+    final_results = {'confusion': conf, 'acc': acc, 'jcc': jcc, 'pre': pre, 'f1': f1}
+    return final_results
 
 
 if __name__ == '__main__':
