@@ -16,7 +16,7 @@ def precision_score(true, pred, num_classes):
     all_classes = set(np.arange(num_classes))
     not_predicted = all_classes - label_classes
     result = metrics.precision_score(true, pred, labels=np.arange(num_classes), average=None, zero_division=0)
-    result[not_predicted] = np.nan
+    result[list(not_predicted)] = np.nan
     return result
 
 
@@ -25,14 +25,14 @@ def jaccard_score(true, pred, num_classes):
     all_classes = set(np.arange(num_classes))
     not_predicted = all_classes - pred_classes
     result = metrics.jaccard_score(true, pred, labels=np.arange(num_classes), average=None, zero_division=0)
-    result[not_predicted] = np.nan
+    result[list(not_predicted)] = np.nan
     return result
 
 
 def f1_score(true, pred, num_classes):
     true_pred_classes = set(np.unique(true))
     true_pred_classes.update(np.unique(pred))
-    not_present = num_classes - true_pred_classes
+    not_present = set(np.arange(num_classes)) - true_pred_classes
     result = metrics.f1_score(true, pred, labels=np.arange(num_classes), average=None, zero_division=0)
-    result[not_present] = np.nan
+    result[list(not_present)] = np.nan
     return result

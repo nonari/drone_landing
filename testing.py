@@ -50,7 +50,7 @@ def test_net(config, dataset, fold_info, sampler=None):
             true_label = true_label.flatten()
             acc += metrics.accuracy_score(true_label, pred_label, normalize=True)
             jcc.append(jaccard_score(true_label, pred_label, dataset.classes()))
-            pre.append(metrics.precision_score(true_label, pred_label, dataset.classes()))
+            pre.append(precision_score(true_label, pred_label, dataset.classes()))
             f1.append(f1_score(true_label, pred_label, dataset.classes()))
             conf += metrics.confusion_matrix(true_label, pred_label, labels=labels)
 
