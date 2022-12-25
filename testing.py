@@ -75,9 +75,9 @@ def test_net(config, dataset, fold_info, sampler=None):
 def plot_training_charts(config, device):
     data = torch.load(path.join(config.train_path, 'training_results'), map_location=device)
     epoch = config.max_epochs if 'epoch' not in data[0] else data[config.fold]['epoch']
-    tacc = np.asarray(data[config.fold]['acc'])[:-1]
+    tacc = np.asarray(data[config.fold]['acc'])
     tacc = tacc.reshape((-1, tacc.shape[0] // epoch)).mean(axis=1)
-    loss = np.asarray(data[config.fold]['loss'])[:-1]
+    loss = np.asarray(data[config.fold]['loss'])
     loss = loss.reshape((-1, loss.shape[0] // epoch)).mean(axis=1)
     epochs = np.arange(0, epoch)
     fig, ax1 = plt.subplots()
