@@ -5,7 +5,7 @@ import torch
 from torch import nn, optim, cuda
 from os import path
 from tqdm import tqdm
-import metrics
+import custom_metrics
 
 
 def configure_net(net_config, classes):
@@ -39,7 +39,7 @@ def save_checkpoint(config, net, epoch, loss, idx_seed, best=False):
 
 
 def load_data(config, curr_epoch):
-    location = path.join(config.train_path, 'training_results.json')
+    location = path.join(config.train_path, 'training_results')
     if path.exists(location):
         data = torch.load(location)
         if config.fold in data and data[config.fold]['epoch'] >= curr_epoch:
@@ -53,7 +53,7 @@ def load_data(config, curr_epoch):
 
 
 def save_data(config, data):
-    location = path.join(config.train_path, 'training_results.json')
+    location = path.join(config.train_path, 'training_results')
     torch.save(data, location)
 
 
@@ -106,7 +106,7 @@ def train_net(config, dataset, idx_seed, sampler=None, checkpoint=None):
                 image, label = image.to(device=device), label.to(device=device)
 
                 prediction = net(image)
-                acc, loss = metrics.calc_acc(prediction, label), criterion(prediction, label)
+                acc, loss = custom_metrics.calc_acc(prediction, label), criterion(prediction, label)
                 loss_epoch = loss_epoch + loss.item()
                 loss.backward()
                 optimizer.step()

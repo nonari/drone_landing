@@ -1,6 +1,6 @@
 from os import makedirs, path
 from shutil import rmtree
-from config import Config
+from config import Config, TestConfig
 from training import train_net
 import fire
 from torch.utils.data import SubsetRandomSampler
@@ -15,60 +15,71 @@ from testing import test_net
 import numpy as np
 
 
-def last_checkpoint(config):
-    paths = glob(config.checkpoint_path + '/*')
-    paths = sorted(paths, key=lambda p: (path.basename(p).split('_')[0], path.basename(p).split('_')[1]))
-    if len(paths) == 0:
-        raise Exception(f'No checkpoint found at {config.checkpoint_path}, check path or disable -resume')
+def save_execution_data(config):
+    data = {'max_epochs': config.max_epochs,
+            'batch_size': config.batch_size,
+            'folds': config.folds,
+            'model_config': config.model_config,
+            'idx_seed': config.idx_seed}
 
-    return paths[-1]
+    data_path = path.join(config.train_path, 'execution_info')
+    torch.save(data, data_path)
+
+
+def load_execution_data(config):
+    exec_info_path = path.join(config.train_path, 'execution_info')
+    if not path.exists(exec_info_path):
+        raise Exception(f'Execution data not found at {config.train_path}, check path or disable -resume')
+    info = torch.load(exec_info_path)
+    config.max_epochs = max(info['max_epochs'], config.max_epochs)
+    config.batch_size = info['batch_size']
+    config.folds = info['folds']
+    config.model_config = info['model_config']
+    config.idx_seed = info['idx_seed']
+
+    train_info_path = path.join(config.train_path, 'training_results')
+    config._training_status = torch.load(train_info_path)
 
 
 def last_executions(config):
-    paths = glob(config.checkpoint_path + '/*')
+    executed_folds = config._training_status.keys()
+
+    if len(executed_folds) == 0:
+        return [], 0
+
+    executed_folds = sorted(executed_folds, key=lambda x: int(x))
+
+    paths = []
+    fst_fold = -1
+    for fold in executed_folds:
+        curr_epoch = config._training_status[fold]['epoch']
+        if curr_epoch < config.max_epochs - 1:
+            if fst_fold < 0:
+                fst_fold = fold
+            paths.append(path.join(config.checkpoint_path, f'{fold}_{curr_epoch}'))
+
     if len(paths) == 0:
-        raise Exception(f'No checkpoint found at {config.checkpoint_path}, check path or disable -resume')
+        raise Exception('Execution is already complete, you might want to increase epochs')
 
-    paths = sorted(paths, key=lambda e: (int(path.basename(e).split('_')[0]), int(path.basename(e).split('_')[1])))
-
-    # Get last of each fold
-    lasts = []
-    last_fold = int(path.basename(paths[0]).split('_')[0])
-    if len(paths) == 1:
-        lasts.append(paths[0])
-    else:
-        for i, p in enumerate(paths[1:]):
-            curr_fold = int(path.basename(p).split('_')[0])
-            if curr_fold > last_fold:
-                lasts.append(paths[i])
-            if (i+2) == len(paths):
-                lasts.append(paths[i+1])
-            last_fold = curr_fold
-
-    return lasts
+    return paths
 
 
 def folds_strategy(config):
-    idx_seed = random.randint(0, 9999)
+    idx_seed = random.randint(0, 9999) if config.idx_seed is None else config.idx_seed
     config.fold = 0
 
     dataset = TUGrazDataset(config)
     checkpoint_paths = []
     if config.resume:
-        checkpoint_paths = last_executions(config)
-        checkpoint = torch.load(checkpoint_paths[0])
-        idx_seed = checkpoint['idx_seed']
+        checkpoint_paths, config.fold = last_executions(config)
 
     kfold = KFold(n_splits=config.folds, shuffle=True, random_state=idx_seed)
     folds = list(kfold.split(dataset))
 
-    for fold, (train_idx, _) in enumerate(folds):
+    for fold, (train_idx, _) in list(enumerate(folds))[config.fold:]:
         checkpoint = None
         if len(checkpoint_paths) > 0:
             checkpoint = torch.load(checkpoint_paths.pop(0))
-            if checkpoint['epoch'] >= config.max_epochs - 1:
-                print(f'Fold {fold} was complete.')
-                continue
         config.fold = fold
         sampler = SubsetRandomSampler(train_idx)
         train_net(config, dataset, idx_seed, sampler=sampler, checkpoint=checkpoint)
@@ -83,7 +94,7 @@ def train(**kwargs):
         setattr(opt, k_, v_)
 
     # create directories
-    if not opt.resume:
+    if opt.resume:
         if path.exists(opt.save_path):
             if opt.override:
                 rmtree(opt.save_path)
@@ -107,7 +118,7 @@ def train(**kwargs):
 
 def test(**kwargs):
     name = kwargs['name']
-    opt = Config(name=name)
+    opt = TestConfig(name=name)
 
     # overwrite options from commandline
     for k_, v_ in kwargs.items():
@@ -123,9 +134,9 @@ def folds_test(config):
     model_paths = sorted(model_paths, key=lambda p: int(path.basename(p)))
 
     device = torch.device('cuda' if torch.cuda.is_available() and config.gpu else 'cpu')
-    seed_info = torch.load(model_paths[0], map_location=device)
+    idx_seed = torch.load(path.join(config.train_path, 'execution_info'))['idx_seed']
 
-    kfold = KFold(n_splits=config.folds, shuffle=True, random_state=seed_info['idx_seed'])
+    kfold = KFold(n_splits=config.folds, shuffle=True, random_state=idx_seed)
     folds = list(kfold.split(dataset))
 
     results = []
@@ -135,23 +146,31 @@ def folds_test(config):
         fold_info = torch.load(model_paths[fold], map_location=device)
         result = test_net(config, dataset, fold_info, sampler=sampler)
         results.append(result)
-    summarize_results(results)
+
+    if config.validation_stats:
+        summary = summarize_results(results)
+        print(summary)
+        torch.load('', )
+        torch.save(summary, path.join(config.test_path, 'metrics_summary'))
 
 
-def summarize_results(results, num_classes, classes=None):
+def summarize_results(results):
     acc = [r['acc'] for r in results]
     jcc = [r['acc'] for r in results]
     pre = [r['acc'] for r in results]
     f1 = [r['acc'] for r in results]
     conf = [r['acc'] for r in results]
 
-    acc = np.vstack(acc)
-    jcc = np.vstack(jcc)
-    pre = np.vstack(pre)
-    f1 = np.vstack(f1)
+    acc = np.asarray(acc)
+    jcc = np.nanmean(np.vstack(jcc), axis=0)
+    pre = np.nanmean(np.vstack(pre), axis=0)
+    f1 = np.nanmean(np.vstack(f1), axis=0)
 
     conf = np.dstack(conf)
     conf = conf / conf.astype(np.float).sum(axis=1)
+
+    final_results = {'confusion': conf, 'acc': acc, 'jcc': jcc, 'pre': pre, 'f1': f1}
+    return final_results
 
 
 if __name__ == '__main__':
