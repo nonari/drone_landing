@@ -17,6 +17,12 @@ def configure_net(net_config, classes):
             in_channels=3,
             classes=classes
         )
+    elif net_type == 'pspnet':
+        net = smp.Unet(
+            encoder_name=net_config['encoder'],
+            encoder_weights='imagenet' if net_config['pretrained'] else None,
+            in_channels=3,
+            classes=classes)
     else:
         raise NotImplementedError
 

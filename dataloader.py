@@ -9,6 +9,8 @@ from os import path
 from glob import glob
 from PIL import Image
 import importlib
+import pandas as pd
+
 
 imagenet_norm = {'mean': [0.485, 0.456, 0.406],
                  'std': [0.229, 0.224, 0.225]}
@@ -54,6 +56,35 @@ tugraz_color_keys = np.asarray([
     [2, 135, 115],
     [255, 0, 0],
 ])
+
+
+tugraz_classnames = [
+    'nolabel',
+    'paved',
+    'dirt',
+    'grass',
+    'gravel',
+    'water',
+    'rocks',
+    'pool',
+    'veget',
+    'roof',
+    'wall',
+    'window',
+    'door',
+    'fence',
+    'pole',
+    'person',
+    'dog',
+    'car',
+    'bicycle',
+    'tree',
+    'bald',
+    'marker',
+    'obstacle',
+    'conflict'
+]
+
 
 
 def label_to_tensor_v2(label, keys):
@@ -119,6 +150,9 @@ class TUGrazDataset(Dataset):
 
     def classes(self):
         return 24
+
+    def classnames(self):
+        return tugraz_classnames
 
     def __len__(self):
         return self._image_paths.__len__()
