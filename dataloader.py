@@ -1,15 +1,12 @@
-import numpy
 import numpy as np
 from torch.utils.data import DataLoader, Dataset
 from config import Config
-from torchvision import transforms, datasets
-# from torchvision.transforms import InterpolationMode
+from torchvision import transforms
 import torch
 from os import path
 from glob import glob
 from PIL import Image
 import importlib
-import pandas as pd
 
 
 imagenet_norm = {'mean': [0.485, 0.456, 0.406],
@@ -153,6 +150,11 @@ class TUGrazDataset(Dataset):
 
     def classnames(self):
         return tugraz_classnames
+
+    def pred_to_color_mask(self, true, pred):
+        pred_mask = tugraz_color_keys[pred]
+        true_mask = tugraz_color_keys[true]
+        return true_mask, pred_mask
 
     def __len__(self):
         return self._image_paths.__len__()

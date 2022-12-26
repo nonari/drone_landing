@@ -40,8 +40,7 @@ def test_net(config, dataset, fold_info, sampler=None):
         true_label = label.argmax(dim=1).squeeze().detach().cpu().numpy().astype(np.uint)
 
         if config.generate_images:
-            pred_mask = tugraz_color_keys[pred_label]
-            true_mask = tugraz_color_keys[true_label]
+            true_mask, pred_mask = dataset.pred_to_color_mask(true_label, pred_label)
             image = transforms.Normalize(**imagenet_denorm)(image).squeeze().movedim(0, -1).detach().cpu().numpy()
             plot_and_save(image, pred_mask, true_mask, idx, config)
 

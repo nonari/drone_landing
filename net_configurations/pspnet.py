@@ -1,5 +1,5 @@
 CONFIG = {
-    'net': 'unet',
+    'net': 'pspnet',
     'input_size': (704, 1024),
     'encoder': 'resnet34',
     'pretrained': True,
