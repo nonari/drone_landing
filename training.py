@@ -18,7 +18,7 @@ def configure_net(net_config, classes):
             classes=classes
         )
     elif net_type == 'pspnet':
-        net = smp.Unet(
+        net = smp.PSPNet(
             encoder_name=net_config['encoder'],
             encoder_weights='imagenet' if net_config['pretrained'] else None,
             in_channels=3,
