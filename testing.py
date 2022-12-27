@@ -10,12 +10,13 @@ from matplotlib import pyplot as plt
 import numpy as np
 from dataloader import tugraz_color_keys, imagenet_denorm
 from custom_metrics import f1_score, jaccard_score, precision_score
+import matplotlib.patches as mpatch
 
 
 def test_net(config, dataset, fold_info, sampler=None):
     device = torch.device('cuda' if cuda.is_available() and config.gpu else 'cpu')
     net_config = importlib.import_module(f'net_configurations.{config.model_config}').CONFIG
-    net = configure_net(net_config, dataset.classes())
+    net = configure_net(net_config, 24)
 
     net.load_state_dict(fold_info['model_state_dict'])
     net.to(device=device)
@@ -42,7 +43,7 @@ def test_net(config, dataset, fold_info, sampler=None):
         if config.generate_images:
             true_mask, pred_mask = dataset.pred_to_color_mask(true_label, pred_label)
             image = transforms.Normalize(**imagenet_denorm)(image).squeeze().movedim(0, -1).detach().cpu().numpy()
-            plot_and_save(image, pred_mask, true_mask, idx, config)
+            plot_and_save(image, pred_mask, true_mask, idx, config, (dataset.colors()/255, dataset.classnames()))
 
         if config.validation_stats:
             pred_label = pred_label.flatten()
@@ -96,14 +97,24 @@ def plot_training_charts(config, device):
     # plt.show()
 
 
-def plot_and_save(image, predicted_label, im_label, idx, config):
-    fig, ax = plt.subplots(1, 3, figsize=(12, 3.1))
-    [axis.set_axis_off() for axis in ax]
+def plot_and_save(image, predicted_label, im_label, idx, config, legend):
+    fig, ax = plt.subplots(2, 3, figsize=(12, 6.3), squeeze=False)
+    [axis.set_axis_off() for axis in ax.flatten()]
     fig.tight_layout()
-    ax[0].imshow(image), ax[1].imshow(predicted_label), ax[2].imshow(im_label)
-    ax[0].set_title(f'Original')
-    ax[1].set_title('Prediction')
-    ax[2].set_title(f'Ground Truth')
+    ax[0, 0].imshow(image), ax[0,1].imshow(predicted_label), ax[0,2].imshow(im_label)
+    ax[0, 0].set_title(f'Original')
+    ax[0, 1].set_title('Prediction')
+    ax[0, 2].set_title(f'Ground Truth')
+    gs = ax[1, 0].get_gridspec()
+    for axis in ax[1, :]:
+        axis.remove()
+    axbig = fig.add_subplot(gs[1, :])
+    axbig.set_axis_off()
+    colors, names = legend
+    patches = [mpatch.Patch(color=c, label=n) for c, n in zip(colors, names)]
+    axbig.legend(handles=patches, ncol=9, loc='upper left')
     plt.subplots_adjust(top=0.89)
+    # plt.show()
     plt.savefig(path.join(config.test_path, f'{(config.fold+1)*idx}.jpg'))
+    fig.clear()
     plt.cla(), plt.clf()

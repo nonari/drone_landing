@@ -151,6 +151,9 @@ class TUGrazDataset(Dataset):
     def classnames(self):
         return tugraz_classnames
 
+    def colors(self):
+        return tugraz_color_keys
+
     def pred_to_color_mask(self, true, pred):
         pred_mask = tugraz_color_keys[pred]
         true_mask = tugraz_color_keys[true]

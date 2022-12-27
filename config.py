@@ -9,6 +9,9 @@ class Config(object):
         self.comment = 'Basic test'
 
         self.train = True
+
+        self.aeroscapes_root = '/home/nonari/Documentos/aeroscapes'
+
         self.tugraz_root = '/home/nonari/Documentos/semantic_drone_dataset_semantics_v1.1/semantic_drone_dataset/'
         self.tugraz_images_loc = 'low_res_images'
         self.tugraz_labels_loc = 'low_res_label_images'
@@ -38,6 +41,9 @@ class Config(object):
         # wipe execution dir
         self.override = False
 
+        # do not change
+        self.fold = 0
+
         # this is override on resume
         self.idx_seed = 42
         self.batch_size = 1
@@ -48,6 +54,8 @@ class Config(object):
 class TestConfig(Config):
     def __init__(self, name):
         super().__init__(name)
+        self.other_dataset = True
+        self.model = 0
         self.generate_images = True
         self.training_charts = True
         self.validation_stats = True

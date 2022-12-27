@@ -5,7 +5,7 @@ from training import train_net
 import fire
 from torch.utils.data import SubsetRandomSampler
 from dataloader import TUGrazDataset
-from glob import glob
+from aeroscapes import AeroscapesDataset
 from os import path
 import torch
 from sklearn.model_selection import KFold
@@ -15,12 +15,25 @@ from testing import test_net
 import numpy as np
 
 
+def select_dataset(config):
+    dataset_name = config.dataset_name
+    if dataset_name == 'TU_Graz':
+        dataset = TUGrazDataset(config)
+    elif dataset_name == 'aeroscapes':
+        dataset = AeroscapesDataset(config)
+    else:
+        raise Exception(f'Dataset name {dataset_name}, not found.')
+
+    return dataset
+
+
 def save_execution_data(config):
     data = {'max_epochs': config.max_epochs,
             'batch_size': config.batch_size,
             'folds': config.folds,
             'model_config': config.model_config,
-            'idx_seed': config.idx_seed}
+            'idx_seed': config.idx_seed,
+            'dataset_name': config.dataset_name}
 
     data_path = path.join(config.train_path, 'execution_info')
     torch.save(data, data_path)
@@ -36,6 +49,7 @@ def load_execution_data(config):
     config.folds = info['folds']
     config.model_config = info['model_config']
     config.idx_seed = info['idx_seed']
+    config.dataset_name = info['dataset_name']
 
     train_info_path = path.join(config.train_path, 'training_results')
     config._training_status = torch.load(train_info_path)
@@ -124,8 +138,22 @@ def test(**kwargs):
     for k_, v_ in kwargs.items():
         setattr(opt, k_, v_)
 
+    used_dataset = torch.load(path.join(opt.train_path, 'execution_info'))['dataset_name']
+    curr_dataset = opt.dataset_name
+
+    if used_dataset != curr_dataset:
+        test_only_one(opt)
+
     if opt.folds > 1:
         folds_test(opt)
+
+
+def test_only_one(config):
+    device = torch.device('cuda' if torch.cuda.is_available() and config.gpu else 'cpu')
+    dataset = select_dataset(config)
+    model_path = path.join(config.model_path, f'{config.model}')
+    fold_info = torch.load(model_path, map_location=device)
+    result = test_net(config, dataset, fold_info)
 
 
 def folds_test(config):
@@ -149,8 +177,6 @@ def folds_test(config):
 
     if config.validation_stats:
         summary = summarize_results(results)
-        print(summary)
-        torch.load('', )
         torch.save(summary, path.join(config.test_path, 'metrics_summary'))
 
 

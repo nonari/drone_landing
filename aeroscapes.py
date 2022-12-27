@@ -50,21 +50,21 @@ aeroscapes_classnames = [
 
 
 def aero_label_to_tensor(label):
-    label[4] = 0
-    label[5] = 0
-    label[11] = 0
-    label[6] = 4
-    label[7] = 5
-    label[8] = 6
-    label[9] = 7
-    label[10] = 8
+    label[label == 4] = 0
+    label[label == 5] = 0
+    label[label == 11] = 0
+    label[label == 6] = 4
+    label[label == 7] = 5
+    label[label == 8] = 6
+    label[label == 9] = 7
+    label[label == 10] = 8
 
-    r, c, _ = label.shape
+    r, c = label.shape
     sparse_mask = np.zeros((r, c, 9), np.int)
     y, x = np.unravel_index(np.arange(r*c), (r, c))
     sparse_mask[y, x, label.flatten().astype(np.int)] = 1
     sparse_mask = sparse_mask.astype(np.float32)
-    return torch.tensor(sparse_mask)
+    return torch.tensor(sparse_mask).movedim(2, 0)
 
 
 def prepare_image(transformation):
@@ -108,6 +108,9 @@ class AeroscapesDataset(Dataset):
     def classnames(self):
         return aeroscapes_classnames
 
+    def colors(self):
+        return aeroscapes_color
+
     def pred_to_color_mask(self, true, pred):
         pred[pred == 2] = 0
         pred[pred == 4] = 0
@@ -133,10 +136,9 @@ class AeroscapesDataset(Dataset):
         pred[pred == 20] = 7
         pred[pred == 21] = 7
         pred[pred == 1] = 8
-        pred_mask = aeroscapes_classnames[pred]
-        true_mask = aeroscapes_classnames[true]
+        pred_mask = aeroscapes_color[pred]
+        true_mask = aeroscapes_color[true]
         return true_mask, pred_mask
-
 
     def __len__(self):
         return self._image_paths.__len__()
