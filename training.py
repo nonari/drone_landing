@@ -84,11 +84,11 @@ def train_net(config, dataset, idx_seed, sampler=None, checkpoint=None):
         curr_epoch = checkpoint['epoch'] + 1
         best_loss = checkpoint['loss']
 
+    config.datalen = len(dataset)
     data = load_data(config, curr_epoch)
 
     net.to(device=device)
 
-    config.datalen = len(dataset)
     data_loader = DataLoader(dataset=dataset,
                              sampler=sampler,
                              batch_size=config.batch_size,

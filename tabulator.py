@@ -1,3 +1,6 @@
+import torch
+from dataloader import tugraz_classnames
+from aeroscapes import aeroscapes_classnames
 
 
 class Tabulator:
@@ -18,3 +21,8 @@ class Tabulator:
         if type(word) is float:
             word = f'{word:.2f}'
         self.content += word.ljust(self.space)
+
+
+if __name__ == '__main__':
+    d = torch.load('./executions/UNet_r32/test_results/metrics_summary', map_location='cpu')
+    pass

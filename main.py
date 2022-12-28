@@ -157,9 +157,12 @@ def test(**kwargs):
 def test_only_one(config):
     device = torch.device('cuda' if torch.cuda.is_available() and config.gpu else 'cpu')
     dataset = select_dataset(config)
+    makedirs(config.test_path + '_alt', exist_ok=True)
     model_path = path.join(config.model_path, f'{config.model}')
     fold_info = torch.load(model_path, map_location=device)
     result = test_net(config, dataset, fold_info)
+    result_norm = summarize_results(result)
+    torch.save(result_norm, config.test_path + '_alt')
 
 
 def folds_test(config):
@@ -188,17 +191,19 @@ def folds_test(config):
 
 def summarize_results(results):
     acc = [r['acc'] for r in results]
-    jcc = [r['acc'] for r in results]
-    pre = [r['acc'] for r in results]
-    f1 = [r['acc'] for r in results]
-    conf = [r['acc'] for r in results]
+    jcc = [r['jcc'] for r in results]
+    pre = [r['pre'] for r in results]
+    f1 = [r['f1'] for r in results]
+    conf = [r['confusion'] for r in results]
 
-    acc = np.asarray(acc)
+    acc = np.asarray(acc).mean()
     jcc = np.nanmean(np.vstack(jcc), axis=0)
     pre = np.nanmean(np.vstack(pre), axis=0)
     f1 = np.nanmean(np.vstack(f1), axis=0)
 
     conf = np.dstack(conf)
+    conf = conf.sum(axis=2) + np.eye(conf.shape[0])
+
     conf = conf / conf.astype(np.float).sum(axis=1)
 
     final_results = {'confusion': conf, 'acc': acc, 'jcc': jcc, 'pre': pre, 'f1': f1}
