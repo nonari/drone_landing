@@ -57,6 +57,7 @@ def load_execution_data(config):
 
 def last_executions(config):
     executed_folds = config._training_status.keys()
+    executed_folds = list(filter(lambda x: type(x) == int, executed_folds))
 
     if len(executed_folds) == 0:
         return [], 0
@@ -85,6 +86,7 @@ def folds_strategy(config):
     dataset = TUGrazDataset(config)
     checkpoint_paths = []
     if config.resume:
+        load_execution_data(config)
         checkpoint_paths, config.fold = last_executions(config)
 
     kfold = KFold(n_splits=config.folds, shuffle=True, random_state=idx_seed)
@@ -108,7 +110,7 @@ def train(**kwargs):
         setattr(opt, k_, v_)
 
     # create directories
-    if opt.resume:
+    if not opt.resume:
         if path.exists(opt.save_path):
             if opt.override:
                 rmtree(opt.save_path)
