@@ -71,9 +71,13 @@ def last_executions(config):
         if curr_epoch < config.max_epochs - 1:
             if fst_fold < 0:
                 fst_fold = fold
-            paths.append(path.join(config.checkpoint_path, f'{fold}_{curr_epoch}'))
+            fold_checkpoints = glob(path.join(config.checkpoint_path, f'{fold}_*'))
+            if len(fold_checkpoints) == 0:
+                break
+            fold_checkpoints = sorted(fold_checkpoints, key=lambda x: int(path.basename(x).split('_')[1]), reverse=True)
+            paths.append(fold_checkpoints[0])
 
-    if len(paths) == 0:
+    if len(paths) == 0 and fst_fold == -1:
         raise Exception('Execution is already complete, you might want to increase epochs')
 
     return paths, fst_fold
