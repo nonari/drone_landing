@@ -76,7 +76,7 @@ def last_executions(config):
     if len(paths) == 0:
         raise Exception('Execution is already complete, you might want to increase epochs')
 
-    return paths
+    return paths, fst_fold
 
 
 def folds_strategy(config):
