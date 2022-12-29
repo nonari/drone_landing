@@ -162,15 +162,15 @@ def test_only_one(config):
     config.test_path += '_alt'
     device = torch.device('cuda' if torch.cuda.is_available() and config.gpu else 'cpu')
     dataset = select_dataset(config)
-    shuffle = ShuffleSplit(n_splits=1, test_size=0.1)
+    shuffle = ShuffleSplit(n_splits=1, test_size=0.05)
     _, test_idx = list(shuffle.split(dataset))[0]
     sampler = SubsetRandomSampler(test_idx)
     makedirs(config.test_path, exist_ok=True)
     model_path = path.join(config.model_path, f'{config.model}')
     fold_info = torch.load(model_path, map_location=device)
     result = test_net(config, dataset, fold_info, sampler=sampler)
-    result_norm = summarize_results(result)
-    torch.save(result_norm, config.test_path)
+    result_norm = summarize_results([result])
+    torch.save(result_norm, path.join(config.test_path, 'metrics_summary'))
 
 
 def folds_test(config):
