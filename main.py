@@ -153,8 +153,7 @@ def test(**kwargs):
     if not same_dataset:
         opt.dataset_name = curr_dataset
         test_only_one(opt)
-
-    if opt.folds > 1:
+    elif opt.folds > 1:
         folds_test(opt)
 
 
