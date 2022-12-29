@@ -8,7 +8,7 @@ from dataloader import TUGrazDataset
 from aeroscapes import AeroscapesDataset
 from os import path
 import torch
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, ShuffleSplit
 import random
 from glob import glob
 from testing import test_net
@@ -158,10 +158,13 @@ def test_only_one(config):
     config.test_path += '_alt'
     device = torch.device('cuda' if torch.cuda.is_available() and config.gpu else 'cpu')
     dataset = select_dataset(config)
+    shuffle = ShuffleSplit(n_splits=1, test_size=0.1)
+    _, test_idx = list(shuffle.split(dataset))[0]
+    sampler = SubsetRandomSampler(test_idx)
     makedirs(config.test_path, exist_ok=True)
     model_path = path.join(config.model_path, f'{config.model}')
     fold_info = torch.load(model_path, map_location=device)
-    result = test_net(config, dataset, fold_info)
+    result = test_net(config, dataset, fold_info, sampler=sampler)
     result_norm = summarize_results(result)
     torch.save(result_norm, config.test_path)
 
