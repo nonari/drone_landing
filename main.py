@@ -155,14 +155,15 @@ def test(**kwargs):
 
 
 def test_only_one(config):
+    config.test_path += '_alt'
     device = torch.device('cuda' if torch.cuda.is_available() and config.gpu else 'cpu')
     dataset = select_dataset(config)
-    makedirs(config.test_path + '_alt', exist_ok=True)
+    makedirs(config.test_path, exist_ok=True)
     model_path = path.join(config.model_path, f'{config.model}')
     fold_info = torch.load(model_path, map_location=device)
     result = test_net(config, dataset, fold_info)
     result_norm = summarize_results(result)
-    torch.save(result_norm, config.test_path + '_alt')
+    torch.save(result_norm, config.test_path)
 
 
 def folds_test(config):
@@ -182,7 +183,10 @@ def folds_test(config):
         sampler = SubsetRandomSampler(test_idx)
         fold_info = torch.load(model_paths[fold], map_location=device)
         result = test_net(config, dataset, fold_info, sampler=sampler)
-        results.append(result)
+        if config.validation_stats:
+            results.append(result)
+            fold_summary = summarize_results([result])
+            torch.save(fold_summary, path.join(config.test_path, f'metrics_summary_{fold}'))
 
     if config.validation_stats:
         summary = summarize_results(results)
