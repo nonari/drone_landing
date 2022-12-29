@@ -145,9 +145,13 @@ def test(**kwargs):
         setattr(opt, k_, v_)
 
     used_dataset = torch.load(path.join(opt.train_path, 'execution_info'))['dataset_name']
+    same_dataset = used_dataset == opt.dataset_name
     curr_dataset = opt.dataset_name
 
-    if used_dataset != curr_dataset:
+    load_execution_data(opt)
+
+    if not same_dataset:
+        opt.dataset_name = curr_dataset
         test_only_one(opt)
 
     if opt.folds > 1:
