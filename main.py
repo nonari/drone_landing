@@ -213,8 +213,7 @@ def summarize_results(results):
 
     conf = np.dstack(conf)
     conf = conf.sum(axis=2) + np.eye(conf.shape[0])
-
-    conf = conf / conf.astype(np.float).sum(axis=1)
+    conf = conf / conf.astype(np.float).sum(axis=1, keepdims=True)
 
     final_results = {'confusion': conf, 'acc': acc, 'jcc': jcc, 'pre': pre, 'f1': f1}
     return final_results
