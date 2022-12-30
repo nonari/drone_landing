@@ -121,7 +121,7 @@ def train_net(config, dataset, idx_seed, sampler=None, checkpoint=None):
 
         loss_epoch /= tq_loader.__len__()
         if loss_epoch < best_loss and epoch > 0:
-            best_loss = loss.item()
+            best_loss = loss_epoch
             save_checkpoint(config, net, epoch, best_loss, idx_seed, best=True)
 
         if epoch % config.save_every == 0:
