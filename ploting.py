@@ -6,7 +6,7 @@ from dataloader import tugraz_classnames
 from aeroscapes import aeroscapes_classnames
 
 
-def confusion(conf, class_names, test_path):
+def confusion(conf, class_names, location):
     fig = plt.figure(figsize=(16, 14))
     ax = plt.subplot()
     sea.heatmap(conf, annot=False, ax=ax, fmt='g')  # annot=True to annotate cells
@@ -23,7 +23,7 @@ def confusion(conf, class_names, test_path):
 
     plt.title('Refined Confusion Matrix', fontsize=20)
 
-    plt.savefig(path.join(test_path, 'confusion.jpg'))
+    plt.savefig(location)
     plt.show()
 
 

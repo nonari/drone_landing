@@ -26,13 +26,17 @@ class Tabulator:
         self.content += word.ljust(self.space)
 
 
+def write_table(metrics, location, classnames):
+    tabulator = Tabulator(['', 'jaccard', 'f1', 'pre'], classnames)
+    for j, f, p in zip(metrics['jcc'], metrics['f1'], metrics['pre']):
+        tabulator.add_line([j, f, p])
+    print(tabulator.content)
+    text_file = open(location, "w")
+    text_file.write(tabulator.content)
+    text_file.close()
+
+
 if __name__ == '__main__':
     loc = './executions/PSPNet_r32/test_results_alt/'
-    t = Tabulator(['', 'jaccard', 'f1', 'pre'], tugraz_classnames)
     d = torch.load(path.join(loc, 'metrics_summary'), map_location='cpu')
-    for j, f, p in zip(d['jcc'], d['f1'], d['pre']):
-        t.add_line([j, f, p])
-    print(t.content)
-    text_file = open(path.join(loc, 'table_metrics.txt'), "w")
-    n = text_file.write(t.content)
-    text_file.close()
+    write_table(d, loc, tugraz_classnames)
