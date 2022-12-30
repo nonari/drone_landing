@@ -3,6 +3,7 @@ import seaborn as sea
 import torch
 from os import path
 from dataloader import tugraz_classnames
+from aeroscapes import aeroscapes_classnames
 
 
 def confusion(conf, class_names, test_path):
@@ -27,5 +28,5 @@ def confusion(conf, class_names, test_path):
 
 
 if __name__ == '__main__':
-    d = torch.load('./executions/UNet_r32/test_results/metrics_summary', map_location='cpu')
-    confusion(d['confusion'], tugraz_classnames, './executions/UNet_r32/test_results')
+    d = torch.load('./executions/PSPNet_r32/test_results_alt/metrics_summary', map_location='cpu')
+    confusion(d['confusion'], aeroscapes_classnames, './executions/PSPNet_r32/test_results_alt')

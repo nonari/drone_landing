@@ -54,7 +54,6 @@ class Config(object):
 class TestConfig(Config):
     def __init__(self, name):
         super().__init__(name)
-        self.other_dataset = True
         self.model = 0
         self.generate_images = True
         self.training_charts = True

@@ -50,6 +50,8 @@ aeroscapes_classnames = [
 
 
 def aero_label_to_tensor(label):
+    # Compatibility issue? READ ONLY label
+    label = label.copy()
     label[label == 4] = 0
     label[label == 5] = 0
     label[label == 11] = 0
@@ -60,9 +62,9 @@ def aero_label_to_tensor(label):
     label[label == 10] = 8
 
     r, c = label.shape
-    sparse_mask = np.zeros((r, c, 9), np.int)
+    sparse_mask = np.zeros((r, c, 9), np.int32)
     y, x = np.unravel_index(np.arange(r*c), (r, c))
-    sparse_mask[y, x, label.flatten().astype(np.int)] = 1
+    sparse_mask[y, x, label.flatten().astype(np.int32)] = 1
     sparse_mask = sparse_mask.astype(np.float32)
     return torch.tensor(sparse_mask).movedim(2, 0)
 
@@ -86,7 +88,7 @@ def label_transformation(new_size):
 class AeroscapesDataset(Dataset):
     def __init__(self, options):
         images_root = path.join(options.aeroscapes_root, 'JPEGImages')
-        labels_root = path.join(options.aeroscapes_root, f'SegmentationClass')
+        labels_root = path.join(options.aeroscapes_root, 'SegmentationClass')
 
         image_paths = glob(images_root + '/*.jpg')
         label_paths = glob(labels_root + '/*.png')
