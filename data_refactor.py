@@ -6,6 +6,7 @@ from PIL import Image
 from dataloader import tugraz_color_keys
 from config import Config
 from glob import glob
+import cv2
 
 
 tugraz_classes = [
@@ -126,4 +127,30 @@ def refactor_tugraz_labels():
         imo.close()
 
 
-refactor_tugraz_labels()
+def extract_ruralscapes():
+    root = '/ruralscapes/videos'
+    videos = glob(root+'/*')
+    for v in videos:
+        name = path.basename(v).split('.')[0]
+        prefix = path.join(root, 'frames', name)
+        extract_frames(v, prefix)
+
+
+def extract_frames(video_file, prefix):
+    cap = cv2.VideoCapture(video_file)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    print(f'FPS: {fps}')
+    count = 0
+    while True:
+        is_read, frame = cap.read()
+        if not is_read:
+            cap.release()
+            break
+        elif count % 50 == 0:
+            resized = cv2.resize(frame, (1280, 720), interpolation=cv2.INTER_CUBIC)
+            cv2.imwrite(prefix + f"_{count:06}.jpg", resized)
+
+        count += 1
+
+
+extract_ruralscapes()
