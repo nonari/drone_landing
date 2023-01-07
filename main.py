@@ -161,6 +161,7 @@ def test(**kwargs):
 
 def test_only_one(config):
     config.test_path += '_alt'
+    config.training_charts = False
     device = torch.device('cuda' if torch.cuda.is_available() and config.gpu else 'cpu')
     dataset = select_dataset(config)
     shuffle = ShuffleSplit(n_splits=1, test_size=0.05)
@@ -171,6 +172,10 @@ def test_only_one(config):
     fold_info = torch.load(model_path, map_location=device)
     result = test_net(config, dataset, fold_info, sampler=sampler)
     result_norm = summarize_results([result])
+    table_loc = path.join(config.test_path, f'table_metrics_{config.model}.txt')
+    tabulator.write_table(result_norm, table_loc, dataset.classnames())
+    conf_loc = path.join(config.test_path, f'confusion_{config.model}.jpg')
+    ploting.confusion(result_norm['confusion'], dataset.classnames(), conf_loc)
     torch.save(result_norm, path.join(config.test_path, 'metrics_summary'))
 
 
