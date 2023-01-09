@@ -1,6 +1,5 @@
 import torch
-from dataloader import tugraz_classnames
-from aeroscapes import aeroscapes_classnames
+from datasets.tugraz import tugraz_classnames
 from os import path
 
 

@@ -1,9 +1,7 @@
 from matplotlib import pyplot as plt
 import seaborn as sea
 import torch
-from os import path
-from dataloader import tugraz_classnames
-from aeroscapes import aeroscapes_classnames
+from datasets.aeroscapes import aeroscapes_classnames
 
 
 def confusion(conf, class_names, location):

@@ -1,31 +1,13 @@
 import numpy as np
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import Dataset
 from config import Config
-from torchvision import transforms
 import torch
 from os import path
 from glob import glob
 from PIL import Image
 import importlib
 
-
-imagenet_norm = {'mean': [0.485, 0.456, 0.406],
-                 'std': [0.229, 0.224, 0.225]}
-imagenet_denorm = {'mean': [-0.485/0.229, -0.456/0.224, -0.406/0.225],
-                   'std': [1/0.229, 1/0.224, 1/0.225]}
-
-
-def transform_tugraz(size):
-    return transforms.Compose([
-        transforms.Resize(size, interpolation=Image.BILINEAR),
-        transforms.ToTensor(),
-        transforms.Normalize(**imagenet_norm)
-    ])
-
-
-class_names = [
-    'unlabeled',
-]
+from datasets.dataset import transform_image
 
 tugraz_color_keys = np.asarray([
     [0, 0, 0],
@@ -83,7 +65,6 @@ tugraz_classnames = [
 ]
 
 
-
 def label_to_tensor_v2(label, keys):
     v = np.asarray([256 * 256, 256, 1])
     one_key = np.sum(keys * v, axis=1)
@@ -138,7 +119,7 @@ class TUGrazDataset(Dataset):
         self._label_paths = np.asarray(label_paths)
 
         net_config = importlib.import_module(f'net_configurations.{options.model_config}').CONFIG
-        t_tugraz = transform_tugraz(net_config['input_size'])
+        t_tugraz = transform_image(net_config['input_size'])
 
         self._prepare_im = prepare_image(t_tugraz)
         device = torch.device('cuda' if torch.cuda.is_available() and options.gpu else 'cpu')

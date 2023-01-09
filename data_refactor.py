@@ -3,7 +3,7 @@ from os import path, makedirs
 import numpy as np
 from PIL import Image
 
-from dataloader import tugraz_color_keys
+from datasets.tugraz import tugraz_color_keys
 from config import Config
 from glob import glob
 import cv2

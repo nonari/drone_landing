@@ -8,7 +8,7 @@ import importlib
 from os import path
 from matplotlib import pyplot as plt
 import numpy as np
-from dataloader import tugraz_color_keys, imagenet_denorm
+from datasets.tugraz import imagenet_denorm
 from custom_metrics import f1_score, jaccard_score, precision_score
 import matplotlib.patches as mpatch
 

@@ -1,11 +1,11 @@
-from os import makedirs, path
+from os import makedirs
 from shutil import rmtree
 from config import Config, TestConfig
 from training import train_net
 import fire
 from torch.utils.data import SubsetRandomSampler
-from dataloader import TUGrazDataset
-from aeroscapes import AeroscapesDataset
+from datasets.tugraz import TUGrazDataset
+from datasets.aeroscapes import AeroscapesDataset
 from os import path
 import torch
 from sklearn.model_selection import KFold, ShuffleSplit
