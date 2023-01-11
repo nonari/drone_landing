@@ -1,4 +1,7 @@
+from abc import ABC
+
 from PIL import Image
+from torch.utils.data import Dataset
 from torchvision.transforms import transforms
 
 imagenet_norm = {'mean': [0.485, 0.456, 0.406],
@@ -13,3 +16,20 @@ def transform_image(size):
         transforms.ToTensor(),
         transforms.Normalize(**imagenet_norm)
     ])
+
+
+class GenericDataset(Dataset, ABC):
+    def classes(self):
+        raise NotImplementedError
+
+    def classnames(self):
+        raise NotImplementedError
+
+    def colors(self):
+        raise NotImplementedError
+
+    def pred_to_color_mask(self, true, pred):
+        raise NotImplementedError
+
+    def get_folds(self):
+        raise NotImplementedError

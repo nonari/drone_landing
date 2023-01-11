@@ -1,13 +1,13 @@
 import numpy as np
-from torch.utils.data import Dataset
-from config import Config
 import torch
 from os import path
 from glob import glob
 from PIL import Image
 import importlib
 
-from datasets.dataset import transform_image
+from sklearn.model_selection import KFold
+
+from datasets.dataset import transform_image, GenericDataset
 
 tugraz_color_keys = np.asarray([
     [0, 0, 0],
@@ -104,9 +104,10 @@ def label_transformation(color_keys, new_size, device):
     return f
 
 
-class TUGrazDataset(Dataset):
+class TUGrazDataset(GenericDataset):
     def __init__(self, options):
-        subset = 'training_set' if options.train else 'testing_set'
+        self.options = options
+        subset = 'training_set'
         images_root = path.join(options.tugraz_root, subset, options.tugraz_images_loc)
         labels_root = path.join(options.tugraz_root, subset, f'gt/semantic/{options.tugraz_labels_loc}')
 
@@ -125,6 +126,15 @@ class TUGrazDataset(Dataset):
         device = torch.device('cuda' if torch.cuda.is_available() and options.gpu else 'cpu')
         self._prepare_lab = prepare_image(label_transformation(
             tugraz_color_keys, net_config['input_size'], device))
+
+    def get_folds(self):
+        kfold = KFold(n_splits=self.options.folds, shuffle=True, random_state=self.options.idx_seed)
+        folds = list(kfold.split(self))
+        if self.options.train:
+            folds_part = [tr for tr, _ in folds]
+        else:
+            folds_part = [ts for _, ts in folds]
+        return folds_part
 
     def classes(self):
         return 24
@@ -145,9 +155,3 @@ class TUGrazDataset(Dataset):
 
     def __getitem__(self, item):
         return self._prepare_im(self._image_paths[item]),  self._prepare_lab(self._label_paths[item])
-
-
-if __name__ == '__main__':
-    conf = Config()
-    tg = TUGrazDataset(conf)
-    print(tg.__len__())

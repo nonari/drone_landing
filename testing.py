@@ -8,7 +8,7 @@ import importlib
 from os import path
 from matplotlib import pyplot as plt
 import numpy as np
-from datasets.tugraz import imagenet_denorm
+from datasets.dataset import imagenet_denorm
 from custom_metrics import f1_score, jaccard_score, precision_score
 import matplotlib.patches as mpatch
 
@@ -101,7 +101,7 @@ def plot_and_save(image, predicted_label, im_label, idx, config, legend):
     fig, ax = plt.subplots(2, 3, figsize=(12, 6.3), squeeze=False)
     [axis.set_axis_off() for axis in ax.flatten()]
     fig.tight_layout()
-    ax[0, 0].imshow(image), ax[0,1].imshow(predicted_label), ax[0,2].imshow(im_label)
+    ax[0, 0].imshow(image), ax[0, 1].imshow(predicted_label), ax[0, 2].imshow(im_label)
     ax[0, 0].set_title(f'Original')
     ax[0, 1].set_title('Prediction')
     ax[0, 2].set_title(f'Ground Truth')

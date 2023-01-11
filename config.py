@@ -46,6 +46,7 @@ class Config(object):
 
         # this is override on resume
         self.idx_seed = 42
+        self.validation_epochs = 10
         self.batch_size = 1
         self.folds = 5
         self.max_epochs = 100
@@ -55,6 +56,7 @@ class TestConfig(Config):
     def __init__(self, name):
         super().__init__(name)
         self.model = 0
+        self.test = False
         self.generate_images = True
         self.training_charts = True
         self.validation_stats = True

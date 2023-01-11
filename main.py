@@ -1,7 +1,7 @@
 from os import makedirs
 from shutil import rmtree
 from config import Config, TestConfig
-from training import train_net
+from training import train_net, train_net_with_validation
 import fire
 from torch.utils.data import SubsetRandomSampler
 from datasets.tugraz import TUGrazDataset
@@ -35,7 +35,8 @@ def save_execution_data(config):
             'folds': config.folds,
             'model_config': config.model_config,
             'idx_seed': config.idx_seed,
-            'dataset_name': config.dataset_name}
+            'dataset_name': config.dataset_name,
+            'validation_epochs': config.validation_epochs}
 
     data_path = path.join(config.train_path, 'execution_info')
     torch.save(data, data_path)
@@ -87,6 +88,7 @@ def last_executions(config):
 
 def folds_strategy(config):
     idx_seed = random.randint(0, 9999) if config.idx_seed is None else config.idx_seed
+    config.idx_seed = idx_seed
     config.fold = 0
 
     dataset = TUGrazDataset(config)
@@ -95,16 +97,20 @@ def folds_strategy(config):
         load_execution_data(config)
         checkpoint_paths, config.fold = last_executions(config)
 
-    kfold = KFold(n_splits=config.folds, shuffle=True, random_state=idx_seed)
-    folds = list(kfold.split(dataset))
+    folds = dataset.get_folds()
 
-    for fold, (train_idx, _) in list(enumerate(folds))[config.fold:]:
+    for fold, train_idx, val_idx in list(enumerate(folds))[config.fold:]:
         checkpoint = None
         if len(checkpoint_paths) > 0:
             checkpoint = torch.load(checkpoint_paths.pop(0))
         config.fold = fold
-        sampler = SubsetRandomSampler(train_idx)
-        train_net(config, dataset, idx_seed, sampler=sampler, checkpoint=checkpoint)
+        train_sampler = SubsetRandomSampler(train_idx)
+        val_sampler = SubsetRandomSampler(val_idx) if val_idx is not None else None
+        if val_sampler is None:
+            train_net(config, dataset, train_sampler=train_sampler, checkpoint=checkpoint)
+        else:
+            train_net_with_validation(config, dataset, train_sampler=train_sampler, val_sampler=val_sampler,
+                                      checkpoint=checkpoint)
 
 
 def train(**kwargs):
@@ -114,6 +120,8 @@ def train(**kwargs):
     # overwrite options from commandline
     for k_, v_ in kwargs.items():
         setattr(opt, k_, v_)
+
+    opt.train = True
 
     # create directories
     if not opt.resume:
@@ -146,6 +154,7 @@ def test(**kwargs):
     for k_, v_ in kwargs.items():
         setattr(opt, k_, v_)
 
+    opt.train = False
     used_dataset = torch.load(path.join(opt.train_path, 'execution_info'))['dataset_name']
     same_dataset = used_dataset == opt.dataset_name
     curr_dataset = opt.dataset_name

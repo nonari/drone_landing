@@ -6,7 +6,7 @@ from glob import glob
 from PIL import Image
 import importlib
 
-from datasets.dataset import transform_image
+from datasets.dataset import transform_image, GenericDataset
 
 aeroscapes_color = np.asarray([
     [0, 0, 0],
@@ -70,7 +70,7 @@ def label_transformation(new_size):
     return f
 
 
-class AeroscapesDataset(Dataset):
+class AeroscapesDataset(GenericDataset):
     def __init__(self, options):
         images_root = path.join(options.aeroscapes_root, 'JPEGImages')
         labels_root = path.join(options.aeroscapes_root, 'SegmentationClass')
