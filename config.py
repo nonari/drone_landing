@@ -46,10 +46,12 @@ class Config(object):
 
         # this is override on resume
         self.idx_seed = 42
-        self.validation_epochs = 10
         self.batch_size = 1
         self.folds = 5
         self.max_epochs = 100
+        # for validation
+        self.validation_epochs = 10
+        self.stop_after_miss = 2
 
 
 class TestConfig(Config):

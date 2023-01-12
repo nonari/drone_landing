@@ -3,7 +3,7 @@ from torch.utils.data import DataLoader
 import segmentation_models_pytorch as smp
 import torch
 from torch import cuda
-from os import path
+from os import path, remove
 from tqdm import tqdm
 import custom_metrics
 
@@ -48,8 +48,7 @@ def load_data(config, curr_epoch):
     if path.exists(location):
         data = torch.load(location)
         if config.fold in data and data[config.fold]['epoch'] >= curr_epoch:
-            epoch_len = config.datalen * (config.folds - 1) // config.folds // config.batch_size
-            last = epoch_len * curr_epoch
+            last = config.datalen * curr_epoch
             data[config.fold]['acc'] = data[config.fold]['acc'][:last]
             data[config.fold]['loss'] = data[config.fold]['loss'][:last]
             if 'acc_val' in data[config.fold]:
@@ -93,9 +92,6 @@ def train_net(config, dataset, train_sampler=None, checkpoint=None):
         curr_epoch = checkpoint['epoch'] + 1
         best_loss = checkpoint['loss']
 
-    config.datalen = len(dataset)
-    data = load_data(config, curr_epoch)
-
     net.to(device=device)
 
     data_loader = DataLoader(dataset=dataset,
@@ -103,6 +99,9 @@ def train_net(config, dataset, train_sampler=None, checkpoint=None):
                              batch_size=config.batch_size,
                              drop_last=True,
                              num_workers=config.num_threads)
+
+    config.datalen = len(data_loader)
+    data = load_data(config, curr_epoch)
 
     optimizer = eval(net_config['optimizer']['name'])(net.parameters(), **net_config['optimizer']['params'])
     criterion = eval(net_config['loss'])()
@@ -143,20 +142,24 @@ def train_net(config, dataset, train_sampler=None, checkpoint=None):
     del net
 
 
+def remove_past_checkpoints(config, epoch):
+    if epoch // config.validation_epochs > config.stop_after_miss + 1:
+        removable_epoch = epoch - config.validation_epochs * config.stop_after_miss
+        removable_check_path = path.join(config.checkpoint_path, f'{config.fold}_{removable_epoch}')
+        if path.exists(removable_check_path):
+            remove(removable_check_path)
+
+
 def train_net_with_validation(config, dataset, train_sampler=None, val_sampler=None, checkpoint=None):
     device = torch.device('cuda' if cuda.is_available() and config.gpu else 'cpu')
     net_config = importlib.import_module(f'net_configurations.{config.model_config}').CONFIG
     net = configure_net(net_config, dataset.classes())
 
-    best_loss = 1000
     curr_epoch = 0
     if checkpoint is not None:
         net.load_state_dict(checkpoint['model_state_dict'])
         curr_epoch = checkpoint['epoch'] + 1
         best_loss = checkpoint['loss']
-
-    config.datalen = len(dataset)
-    data = load_data(config, curr_epoch)
 
     net.to(device=device)
 
@@ -165,6 +168,9 @@ def train_net_with_validation(config, dataset, train_sampler=None, val_sampler=N
                              batch_size=config.batch_size,
                              drop_last=True,
                              num_workers=config.num_threads)
+
+    config.datalen = len(data_loader)
+    data = load_data(config, curr_epoch)
 
     val_loader = DataLoader(dataset=dataset,
                             sampler=val_sampler,
@@ -181,7 +187,6 @@ def train_net_with_validation(config, dataset, train_sampler=None, val_sampler=N
 
     for epoch in range(curr_epoch, config.max_epochs):
         net.train()
-        loss_epoch = 0
         with tqdm(data_loader, unit="batch") as tq_loader:
             for image, label in tq_loader:
                 tq_loader.set_description(f'{prefix}Epoch {epoch}')
@@ -196,33 +201,45 @@ def train_net_with_validation(config, dataset, train_sampler=None, val_sampler=N
                 add_data(data, config, epoch, acc, loss.item())
                 tq_loader.set_postfix(loss=loss.item(), acc=acc)
 
-        loss_epoch /= tq_loader.__len__()
-        if loss_epoch < best_loss and epoch > 0:
-            best_loss = loss_epoch
-            save_checkpoint(config, net, epoch, best_loss, best=True)
-
-        if epoch % config.save_every == 0:
-            save_checkpoint(config, net, epoch, best_loss)
-        elif epoch == (config.max_epochs - 1):
-            save_checkpoint(config, net, epoch, best_loss)
-
         save_data(config, data)
-
-        # Validation
-        net.eval()
-        loss_val = 0
-        acc_val = 0
-        with tqdm(val_loader, unit="batch") as tq_loader:
-            for image, label in tq_loader:
-                tq_loader.set_description(f'VALIDATION {prefix}Epoch {epoch}')
-                optimizer.zero_grad()
-                image, label = image.to(device=device), label.to(device=device)
-
-                prediction = net(image)
-                acc, loss = custom_metrics.calc_acc(prediction, label), criterion(prediction, label)
-                loss_val += loss.item()
-                acc_val += acc
-                tq_loader.set_postfix(loss=loss.item(), acc=acc)
-        add_data(data, config, epoch, acc_val, loss_val, val=True)
+        if epoch % config.validation_epochs:
+            save_checkpoint(config, net, epoch, 0)
+            net.eval()
+            loss_val, acc_val = 0, 0
+            with tqdm(val_loader, unit="batch") as tq_loader:
+                for image, label in tq_loader:
+                    tq_loader.set_description(f'VALIDATION {prefix}Epoch {epoch}')
+                    image, label = image.to(device=device), label.to(device=device)
+                    prediction = net(image)
+                    acc, loss = custom_metrics.calc_acc(prediction, label), criterion(prediction, label)
+                    loss_val += loss.item()
+                    acc_val += acc
+                    tq_loader.set_postfix(loss=loss.item(), acc=acc)
+            add_data(data, config, epoch, acc_val, loss_val, val=True)
+            stop = check_stop(config, data)
+            save_data(config, data)
+            remove_past_checkpoints(config, epoch)
+            if stop:
+                break
 
     del net
+
+
+def check_stop(config, data):
+    max_miss = config.stop_after_miss
+    acc_val = data[config.fold]['acc_val']
+    if len(acc_val) < max_miss + 1:
+        return True
+
+    acc_valid = acc_val[-max_miss - 1:]
+    last_acc = acc_valid[-1]
+    prev_acc = acc_valid[:-1]
+    deltas = list(map(lambda x: last_acc - x, prev_acc))
+    valid = list(map(lambda x: x < 0.01, deltas))
+    stop = all(valid)
+
+    return stop
+
+
+
+
