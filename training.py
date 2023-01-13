@@ -234,8 +234,8 @@ def check_stop(config, data):
     acc_valid = acc_val[-max_miss - 1:]
     last_acc = acc_valid[-1]
     prev_acc = acc_valid[:-1]
-    deltas = list(map(lambda x: last_acc - x, prev_acc))
-    valid = list(map(lambda x: x < 0.01, deltas))
+    diffs = list(map(lambda x: last_acc - x, prev_acc))
+    valid = list(map(lambda x: x < config.delta, diffs))
     stop = all(valid)
 
     return stop

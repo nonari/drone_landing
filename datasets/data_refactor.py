@@ -7,7 +7,7 @@ from datasets.tugraz import tugraz_color_keys
 from config import Config
 from glob import glob
 import cv2
-
+import pprint
 
 tugraz_classes = [
     "unlabeled",
@@ -128,11 +128,11 @@ def refactor_tugraz_labels():
 
 
 def extract_ruralscapes():
-    root = '/ruralscapes/videos'
+    root = '/home/nonari/Documentos/ruralscapes/videos'
     videos = glob(root+'/*')
     for v in videos:
         name = path.basename(v).split('.')[0]
-        prefix = path.join(root, 'frames', name)
+        prefix = path.join(path.dirname(root), 'frames', name)
         extract_frames(v, prefix)
 
 
@@ -141,16 +141,44 @@ def extract_frames(video_file, prefix):
     fps = cap.get(cv2.CAP_PROP_FPS)
     print(f'FPS: {fps}')
     count = 0
+    last_frame = None
     while True:
         is_read, frame = cap.read()
         if not is_read:
+            resized = cv2.resize(last_frame, (1280, 720), interpolation=cv2.INTER_CUBIC)
+            cv2.imwrite(prefix + f"_{(count-1):06}.jpg", resized)
             cap.release()
             break
         elif count % 50 == 0:
             resized = cv2.resize(frame, (1280, 720), interpolation=cv2.INTER_CUBIC)
             cv2.imwrite(prefix + f"_{count:06}.jpg", resized)
-
+        last_frame = frame
         count += 1
 
 
-extract_ruralscapes()
+def group():
+    frame_paths = glob('/home/nonari/Documentos/ruralscapes/frames/*')
+    ids = {}
+    for p in frame_paths:
+        idv = path.basename(p).split('_')[1]
+        if idv not in ids:
+            ids[idv] = 1
+        else:
+            ids[idv] += 1
+    keys = sorted(ids.keys(), key=lambda x: ids[x])
+    for k in keys:
+        print(k, ids[k])
+
+
+def downsize_rural():
+    frame_paths = glob('/home/nonari/Documentos/ruralscapes/labels/manual_labels/*/*')
+    for p in frame_paths:
+        label = Image.open(p)
+        res_label = label.resize((1280, 720), Image.NEAREST)
+        new_path = path.join(path.dirname(path.dirname(path.dirname(p))), 'resized_labels', path.basename(p))
+        res_label.save(new_path)
+        res_label.close()
+        label.close()
+
+
+group()

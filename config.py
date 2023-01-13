@@ -52,6 +52,7 @@ class Config(object):
         # for validation
         self.validation_epochs = 10
         self.stop_after_miss = 2
+        self.delta = 0.01
 
 
 class TestConfig(Config):
