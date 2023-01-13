@@ -60,23 +60,11 @@ def label_to_tensor_v2(label, keys):
     v = np.asarray([256 * 256, 256, 1])
     one_key = np.sum(keys * v, axis=1)
     one_ch = np.sum(label * v[None, None], axis=2)
+    # Church to building
+    one_ch[one_ch == one_key[7]] = one_key[0]
+
     sparse = np.equal(one_key[None, None], one_ch[..., None]).astype(np.float32)
     return torch.tensor(sparse).movedim(2, 0)
-
-
-def label_to_tensor_v3(label, keys, device='cuda'):
-    v = torch.tensor([256 * 256, 256, 1]).unsqueeze(dim=0).to(device)
-    keys = torch.tensor(keys).to(device)
-    one_key = (keys * v).sum(dim=1).reshape(1, 1, -1)
-    label = torch.tensor(label).to(device)
-    one_ch = (label * v.unsqueeze(dim=1)).sum(dim=2, keepdims=True)
-    sparse = (one_key == one_ch).float()
-    return sparse.movedim(2, 0)
-
-
-def label_to_tensor(label, color_mask):
-    sparse_mask = np.all(np.equal(label, color_mask), axis=3).astype(np.float32)
-    return torch.tensor(sparse_mask)
 
 
 def prepare_image(transformation):
