@@ -194,13 +194,11 @@ def folds_test(config):
     model_paths = sorted(model_paths, key=lambda p: int(path.basename(p)))
 
     device = torch.device('cuda' if torch.cuda.is_available() and config.gpu else 'cpu')
-    idx_seed = torch.load(path.join(config.train_path, 'execution_info'))['idx_seed']
-
-    kfold = KFold(n_splits=config.folds, shuffle=True, random_state=idx_seed)
-    folds = list(kfold.split(dataset))
+    config.idx_seed = torch.load(path.join(config.train_path, 'execution_info'))['idx_seed']
+    folds = dataset.get_folds()
 
     results = []
-    for fold, (_, test_idx) in enumerate(folds):
+    for fold, test_idx in enumerate(folds):
         config.fold = fold
         sampler = SubsetRandomSampler(test_idx)
         fold_info = torch.load(model_paths[fold], map_location=device)

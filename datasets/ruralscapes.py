@@ -41,9 +41,9 @@ ruralscapes_classnames = [
 ]
 
 test_ids = ['0051', '0093', '0047', '0056' '0086']
-folds = [['0101', '0053', '0089', '0116', '0043'],
-         ['0044', '0085', '0061', '0046', '0118'],
-         ['0045', '0088', '0114', '0050', '0097']]
+train_folds = [['0101', '0053', '0089', '0116', '0043'],
+               ['0044', '0085', '0061', '0046', '0118'],
+               ['0045', '0088', '0114', '0050', '0097']]
 
 
 def get_all(dirname, ids):
@@ -96,31 +96,50 @@ def label_transformation(color_keys, new_size, device):
 
 
 class TUGrazDataset(GenericDataset):
-    def __init__(self, options):
-        self.options = options
+    def __init__(self, config):
+        self.config = config
+        self.images_root = path.join(config.rural_root, 'frames')
+        labels_root = path.join(config.rural_root, 'labels/resized_labels')
 
-        images_root = path.join(options.rural_root, 'frames')
-        labels_root = path.join(options.rural_root, 'labels/resized_labels')
-
-        image_paths = glob(images_root + '/*.jpg')
+        image_paths = glob(self.images_root + '/*.jpg')
         label_paths = glob(labels_root + '/*.png')
         image_paths = sorted(image_paths, key=lambda x: int(path.basename(x)[:3]))
         label_paths = sorted(label_paths, key=lambda x: int(path.basename(x)[:3]))
 
+        self.inv_idx = {}
+        for idx, k in enumerate(image_paths):
+            self.inv_idx[k] = idx
+
         self._image_paths = np.asarray(image_paths)
         self._label_paths = np.asarray(label_paths)
 
-        net_config = importlib.import_module(f'net_configurations.{options.model_config}').CONFIG
+        net_config = importlib.import_module(f'net_configurations.{config.model_config}').CONFIG
         t_rural = transform_image(net_config['input_size'])
 
         self._prepare_im = prepare_image(t_rural)
-        device = torch.device('cuda' if torch.cuda.is_available() and options.gpu else 'cpu')
+        device = torch.device('cuda' if torch.cuda.is_available() and config.gpu else 'cpu')
         self._prepare_lab = prepare_image(label_transformation(
             ruralscapes_color_keys, net_config['input_size'], device))
 
-    def get_folds(self):
+    def p_to_i(self, p):
+        return [self.inv_idx[k] for k in p]
 
-        return folds_part
+    def get_folds(self):
+        folds = []
+        if self.config.train:
+            fold0_train = get_all(self.config.rural_root, train_folds[0] + train_folds[1])
+            fold0_val = get_all(self.config.rural_root, train_folds[2])
+            fold1_train = get_all(self.config.rural_root, train_folds[1] + train_folds[2])
+            fold1_val = get_all(self.config.rural_root, train_folds[3])
+            fold2_train = get_all(self.config.rural_root, train_folds[0] + train_folds[2])
+            fold2_val = get_all(self.config.rural_root, train_folds[1])
+            folds.append((self.p_to_i(fold0_train), self.p_to_i(fold0_val)))
+            folds.append((self.p_to_i(fold1_train), self.p_to_i(fold1_val)))
+            folds.append((self.p_to_i(fold2_train), self.p_to_i(fold2_val)))
+        else:
+            fold_test = get_all(self.config.rural_root, test_ids)
+            folds.append((self.p_to_i(fold_test)))
+        return folds
 
     def classes(self):
         return 12
