@@ -10,6 +10,8 @@ class Config(object):
 
         self.train = True
 
+        self.rural_root = '/home/nonari/Documentos/ruralscapes'
+
         self.aeroscapes_root = '/home/nonari/Documentos/aeroscapes'
 
         self.tugraz_root = '/home/nonari/Documentos/semantic_drone_dataset_semantics_v1.1/semantic_drone_dataset/'

@@ -1,6 +1,7 @@
 from os import makedirs
 from shutil import rmtree
 from config import Config, TestConfig
+from datasets.ruralscapes import RuralscapesDataset
 from training import train_net, train_net_with_validation
 import fire
 from torch.utils.data import SubsetRandomSampler
@@ -23,6 +24,8 @@ def select_dataset(config):
         dataset = TUGrazDataset(config)
     elif dataset_name == 'aeroscapes':
         dataset = AeroscapesDataset(config)
+    elif dataset_name == 'ruralscapes':
+        dataset = RuralscapesDataset(config)
     else:
         raise Exception(f'Dataset name {dataset_name}, not found.')
 
@@ -91,7 +94,7 @@ def folds_strategy(config):
     config.idx_seed = idx_seed
     config.fold = 0
 
-    dataset = TUGrazDataset(config)
+    dataset = select_dataset(config)
     checkpoint_paths = []
     if config.resume:
         load_execution_data(config)
@@ -99,7 +102,7 @@ def folds_strategy(config):
 
     folds = dataset.get_folds()
 
-    for fold, train_idx, val_idx in list(enumerate(folds))[config.fold:]:
+    for fold, (train_idx, val_idx) in list(enumerate(folds))[config.fold:]:
         checkpoint = None
         if len(checkpoint_paths) > 0:
             checkpoint = torch.load(checkpoint_paths.pop(0))

@@ -131,7 +131,7 @@ class TUGrazDataset(GenericDataset):
         kfold = KFold(n_splits=self.options.folds, shuffle=True, random_state=self.options.idx_seed)
         folds = list(kfold.split(self))
         if self.options.train:
-            folds_part = [tr for tr, _ in folds]
+            folds_part = [(tr, None) for tr, _ in folds]
         else:
             folds_part = [ts for _, ts in folds]
         return folds_part

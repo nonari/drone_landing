@@ -5,8 +5,6 @@ from glob import glob
 from PIL import Image
 import importlib
 
-from sklearn.model_selection import KFold
-
 from datasets.dataset import transform_image, GenericDataset
 
 ruralscapes_color_keys = np.asarray([
@@ -49,7 +47,7 @@ train_folds = [['0101', '0053', '0089', '0116', '0043'],
 def get_all(dirname, ids):
     all_frames = []
     for i in ids:
-        id_frames_exp = path.join(dirname, f'*{i:04}*')
+        id_frames_exp = path.join(dirname, f'*{i}*')
         id_frames_paths = glob(id_frames_exp)
         all_frames += id_frames_paths
 
@@ -83,16 +81,18 @@ def label_transformation(color_keys, new_size, device):
     return f
 
 
-class TUGrazDataset(GenericDataset):
+class RuralscapesDataset(GenericDataset):
     def __init__(self, config):
         self.config = config
-        self.images_root = path.join(config.rural_root, 'frames')
+        self.images_root = path.join(config.rural_root, 'frames2')
         labels_root = path.join(config.rural_root, 'labels/resized_labels')
 
         image_paths = glob(self.images_root + '/*.jpg')
         label_paths = glob(labels_root + '/*.png')
-        image_paths = sorted(image_paths, key=lambda x: int(path.basename(x)[:3]))
-        label_paths = sorted(label_paths, key=lambda x: int(path.basename(x)[:3]))
+        image_paths = sorted(image_paths, key=lambda x: (int(path.basename(x).split('_')[1]),
+                                                         int(path.basename(x).split('_')[2].split('.')[0])))
+        label_paths = sorted(label_paths, key=lambda x: (int(path.basename(x).split('_')[2]),
+                                                         int(path.basename(x).split('_')[3].split('.')[0])))
 
         self.inv_idx = {}
         for idx, k in enumerate(image_paths):
@@ -115,17 +115,17 @@ class TUGrazDataset(GenericDataset):
     def get_folds(self):
         folds = []
         if self.config.train:
-            fold0_train = get_all(self.config.rural_root, train_folds[0] + train_folds[1])
-            fold0_val = get_all(self.config.rural_root, train_folds[2])
-            fold1_train = get_all(self.config.rural_root, train_folds[1] + train_folds[2])
-            fold1_val = get_all(self.config.rural_root, train_folds[3])
-            fold2_train = get_all(self.config.rural_root, train_folds[0] + train_folds[2])
-            fold2_val = get_all(self.config.rural_root, train_folds[1])
+            fold0_train = get_all(self.images_root, train_folds[0] + train_folds[1])
+            fold0_val = get_all(self.images_root, train_folds[2])
+            fold1_train = get_all(self.images_root, train_folds[1] + train_folds[2])
+            fold1_val = get_all(self.images_root, train_folds[0])
+            fold2_train = get_all(self.images_root, train_folds[0] + train_folds[2])
+            fold2_val = get_all(self.images_root, train_folds[1])
             folds.append((self.p_to_i(fold0_train), self.p_to_i(fold0_val)))
             folds.append((self.p_to_i(fold1_train), self.p_to_i(fold1_val)))
             folds.append((self.p_to_i(fold2_train), self.p_to_i(fold2_val)))
         else:
-            fold_test = get_all(self.config.rural_root, test_ids)
+            fold_test = get_all(self.images_root, test_ids)
             folds.append((self.p_to_i(fold_test)))
         return folds
 
