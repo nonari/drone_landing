@@ -192,7 +192,7 @@ def test_only_one(config):
 
 
 def folds_test(config):
-    dataset = TUGrazDataset(config)
+    dataset = select_dataset(config)
     model_paths = glob(path.join(config.model_path, '*'))
     model_paths = sorted(model_paths, key=lambda p: int(path.basename(p)))
 

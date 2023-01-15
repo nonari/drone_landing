@@ -2,7 +2,7 @@ import importlib
 from torch.utils.data import DataLoader
 import segmentation_models_pytorch as smp
 import torch
-from torch import cuda
+from torch import nn, optim, cuda
 from os import path, remove
 from tqdm import tqdm
 import custom_metrics
@@ -69,7 +69,8 @@ def add_data(data, config, epoch, acc=None, loss=None, val=False):
     if config.fold not in data:
         data[config.fold] = {'acc': [], 'loss': []}
     if val and 'acc_val' not in data[config.fold]:
-        data[config.fold] = {'acc_val': [], 'loss_val': []}
+        data[config.fold]['acc_val'] = []
+        data[config.fold]['loss_val'] = []
 
     if not val:
         data[config.fold]['acc'].append(acc)
@@ -144,7 +145,7 @@ def train_net(config, dataset, train_sampler=None, checkpoint=None):
 
 def remove_past_checkpoints(config, epoch):
     if epoch // config.validation_epochs > config.stop_after_miss + 1:
-        removable_epoch = epoch - config.validation_epochs * config.stop_after_miss
+        removable_epoch = epoch - config.validation_epochs * (config.stop_after_miss + 1)
         removable_check_path = path.join(config.checkpoint_path, f'{config.fold}_{removable_epoch}')
         if path.exists(removable_check_path):
             remove(removable_check_path)
@@ -195,26 +196,27 @@ def train_net_with_validation(config, dataset, train_sampler=None, val_sampler=N
 
                 prediction = net(image)
                 acc, loss = custom_metrics.calc_acc(prediction, label), criterion(prediction, label)
-                loss_epoch = loss_epoch + loss.item()
                 loss.backward()
                 optimizer.step()
                 add_data(data, config, epoch, acc, loss.item())
                 tq_loader.set_postfix(loss=loss.item(), acc=acc)
 
         save_data(config, data)
-        if epoch % config.validation_epochs:
+        if epoch % config.validation_epochs == 0:
             save_checkpoint(config, net, epoch, 0)
             net.eval()
             loss_val, acc_val = 0, 0
             with tqdm(val_loader, unit="batch") as tq_loader:
                 for image, label in tq_loader:
-                    tq_loader.set_description(f'VALIDATION {prefix}Epoch {epoch}')
+                    tq_loader.set_description(f'VALIDATION Fold {prefix}Epoch {epoch}')
                     image, label = image.to(device=device), label.to(device=device)
                     prediction = net(image)
                     acc, loss = custom_metrics.calc_acc(prediction, label), criterion(prediction, label)
                     loss_val += loss.item()
                     acc_val += acc
                     tq_loader.set_postfix(loss=loss.item(), acc=acc)
+            loss_val /= val_loader.__len__()
+            acc_val /= val_loader.__len__()
             add_data(data, config, epoch, acc_val, loss_val, val=True)
             stop = check_stop(config, data)
             save_data(config, data)
@@ -229,7 +231,7 @@ def check_stop(config, data):
     max_miss = config.stop_after_miss
     acc_val = data[config.fold]['acc_val']
     if len(acc_val) < max_miss + 1:
-        return True
+        return False
 
     acc_valid = acc_val[-max_miss - 1:]
     last_acc = acc_valid[-1]

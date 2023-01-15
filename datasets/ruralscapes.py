@@ -47,7 +47,7 @@ train_folds = [['0101', '0053', '0089', '0116', '0043'],
 def get_all(dirname, ids):
     all_frames = []
     for i in ids:
-        id_frames_exp = path.join(dirname, f'*{i}*')
+        id_frames_exp = path.join(dirname, f'*_{i}_*')
         id_frames_paths = glob(id_frames_exp)
         all_frames += id_frames_paths
 
@@ -126,6 +126,8 @@ class RuralscapesDataset(GenericDataset):
             folds.append((self.p_to_i(fold2_train), self.p_to_i(fold2_val)))
         else:
             fold_test = get_all(self.images_root, test_ids)
+            folds.append((self.p_to_i(fold_test)))
+            folds.append((self.p_to_i(fold_test)))
             folds.append((self.p_to_i(fold_test)))
         return folds
 
