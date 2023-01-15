@@ -16,7 +16,7 @@ import matplotlib.patches as mpatch
 def test_net(config, dataset, fold_info, sampler=None):
     device = torch.device('cuda' if cuda.is_available() and config.gpu else 'cpu')
     net_config = importlib.import_module(f'net_configurations.{config.model_config}').CONFIG
-    net = configure_net(net_config, 24)
+    net = configure_net(net_config, dataset.classes())
 
     net.load_state_dict(fold_info['model_state_dict'])
     net.to(device=device)

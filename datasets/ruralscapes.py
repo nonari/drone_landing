@@ -38,7 +38,7 @@ ruralscapes_classnames = [
     'water'
 ]
 
-test_ids = ['0051', '0093', '0047', '0056' '0086']
+test_ids = ['0051', '0093', '0047', '0056', '0086']
 train_folds = [['0101', '0053', '0089', '0116', '0043'],
                ['0044', '0085', '0061', '0046', '0118'],
                ['0045', '0088', '0114', '0050', '0097']]
@@ -84,7 +84,7 @@ def label_transformation(color_keys, new_size, device):
 class RuralscapesDataset(GenericDataset):
     def __init__(self, config):
         self.config = config
-        self.images_root = path.join(config.rural_root, 'frames2')
+        self.images_root = path.join(config.rural_root, 'frames')
         labels_root = path.join(config.rural_root, 'labels/resized_labels')
 
         image_paths = glob(self.images_root + '/*.jpg')

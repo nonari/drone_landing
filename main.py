@@ -9,7 +9,7 @@ from datasets.tugraz import TUGrazDataset
 from datasets.aeroscapes import AeroscapesDataset
 from os import path
 import torch
-from sklearn.model_selection import KFold, ShuffleSplit
+from sklearn.model_selection import ShuffleSplit
 import random
 from glob import glob
 from testing import test_net
@@ -99,6 +99,8 @@ def folds_strategy(config):
     if config.resume:
         load_execution_data(config)
         checkpoint_paths, config.fold = last_executions(config)
+    else:
+        save_execution_data(config)
 
     folds = dataset.get_folds()
 
@@ -196,7 +198,7 @@ def folds_test(config):
     model_paths = glob(path.join(config.model_path, '*'))
     model_paths = sorted(model_paths, key=lambda p: int(path.basename(p)))
 
-    device = torch.device('cuda' if torch.cuda.is_available() and config.gpu else 'cpu')
+    device = torch.device('cuda' if config.gpu and torch.cuda.is_available() else 'cpu')
     config.idx_seed = torch.load(path.join(config.train_path, 'execution_info'))['idx_seed']
     folds = dataset.get_folds()
 
