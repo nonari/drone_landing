@@ -5,6 +5,7 @@ import torch
 from torch import nn, optim, cuda
 from os import path, remove
 from tqdm import tqdm
+from shutil import copy
 import custom_metrics
 
 
@@ -222,9 +223,17 @@ def train_net_with_validation(config, dataset, train_sampler=None, val_sampler=N
             save_data(config, data)
             remove_past_checkpoints(config, epoch)
             if stop:
+                copy_good_epoch(config, epoch)
                 break
 
     del net
+
+
+def copy_good_epoch(config, epoch):
+    good_epoch = epoch - config.validation_epochs * config.stop_after_miss
+    ori = path.join(config.checkpoint_path, f'{config.fold}_{good_epoch}')
+    dst = path.join(config.model_path, f'{config.fold}')
+    copy(ori, dst)
 
 
 def check_stop(config, data):
