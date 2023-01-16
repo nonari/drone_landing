@@ -85,13 +85,21 @@ def plot_training_charts(config, device):
     ax1.set_title(f'{config.name}, fold {config.fold}')
     ax1.set_xlabel('epochs')
     ax1.set_ylabel('acc', color=color)
-    ax1.plot(epochs, tacc, color=color)
+    ax1.plot(epochs, tacc, color=color, label='Train acc')
     ax1.tick_params(axis='y', labelcolor=color)
     ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
     color = 'tab:blue'
     ax2.set_ylabel('loss', color=color)  # we already handled the x-label with ax1
-    ax2.plot(epochs, loss, color=color)
+    ax2.plot(epochs, loss, color=color, label='Train loss')
     ax2.tick_params(axis='y', labelcolor=color)
+    if 'acc_val' in data[config.fold]:
+        acc_val = data[config.fold]['acc_val']
+        loss_val = np.clip(data[config.fold]['loss_val'], 0, 1)
+        x_points = np.arange(len(acc_val), step=config.validation_epochs)
+        ax1.scatter(x_points, acc_val, c='red', label='Val acc')
+        ax2.scatter(x_points, loss_val, c='blue', label='Val loss')
+    ax1.legend()
+    ax2.legend()
     fig.tight_layout()
     plt.savefig(path.join(config.test_path, f'{config.name}_chart_fold{config.fold}.jpg'))
     # plt.show()
