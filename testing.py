@@ -115,6 +115,6 @@ def plot_and_save(image, predicted_label, im_label, idx, config, legend):
     axbig.legend(handles=patches, ncol=9, loc='upper left')
     plt.subplots_adjust(top=0.89)
     # plt.show()
-    plt.savefig(path.join(config.test_path, f'{(config.fold+1)*idx}.jpg'))
+    plt.savefig(path.join(config.test_path, f'{config.fold}_{idx}.jpg'))
     fig.clear()
     plt.cla(), plt.clf()
