@@ -5,7 +5,7 @@ from glob import glob
 from PIL import Image
 import importlib
 
-from datasets.dataset import transform_image, GenericDataset
+from datasets.dataset import transform_image, GenericDataset, augment
 
 ruralscapes_color_keys = np.asarray([
     [255, 255, 0],
@@ -54,7 +54,7 @@ def get_all(dirname, ids):
     return all_frames
 
 
-def label_to_tensor_v2(label, keys):
+def label_to_tensor(label, keys):
     v = np.asarray([256 * 256, 256, 1])
     one_key = np.sum(keys * v, axis=1)
     one_ch = np.sum(label * v[None, None], axis=2)
@@ -77,7 +77,7 @@ def prepare_image(transformation):
 def label_transformation(color_keys, new_size, device):
     def f(label):
         lab_res = label.resize(new_size[::-1], Image.NEAREST)
-        return label_to_tensor_v2(np.asarray(lab_res), color_keys)
+        return lab_res
     return f
 
 
@@ -149,4 +149,14 @@ class RuralscapesDataset(GenericDataset):
         return self._image_paths.__len__()
 
     def __getitem__(self, item):
-        return self._prepare_im(self._image_paths[item]),  self._prepare_lab(self._label_paths[item])
+        if self.config.train and self.config._training:
+            tensor_im = self._prepare_im(self._image_paths[item])
+            pil_lab = self._prepare_lab(self._label_paths[item])
+            aug_im, aug_lab = augment(tensor_im, pil_lab)
+            t_aug_lab = label_to_tensor(np.asarray(aug_lab), ruralscapes_color_keys)
+            return aug_im, t_aug_lab
+        else:
+            tensor_im = self._prepare_im(self._image_paths[item])
+            pil_lab = self._prepare_lab(self._label_paths[item])
+            t_lab = label_to_tensor(np.asarray(pil_lab), ruralscapes_color_keys)
+            return tensor_im, t_lab

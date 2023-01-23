@@ -60,6 +60,7 @@ class Config(object):
 class TestConfig(Config):
     def __init__(self, name):
         super().__init__(name)
+        self._training = False
         self.model = 0
         self.test = False
         self.generate_images = True

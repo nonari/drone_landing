@@ -189,6 +189,7 @@ def train_net_with_validation(config, dataset, train_sampler=None, val_sampler=N
 
     for epoch in range(curr_epoch, config.max_epochs):
         net.train()
+        config._training = True
         with tqdm(data_loader, unit="batch") as tq_loader:
             for image, label in tq_loader:
                 tq_loader.set_description(f'{prefix}Epoch {epoch}')
@@ -204,6 +205,7 @@ def train_net_with_validation(config, dataset, train_sampler=None, val_sampler=N
 
         save_data(config, data)
         if epoch % config.validation_epochs == 0:
+            config._training = False
             save_checkpoint(config, net, epoch, 0)
             net.eval()
             loss_val, acc_val = 0, 0

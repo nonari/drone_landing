@@ -33,6 +33,7 @@ def test_net(config, dataset, fold_info, sampler=None):
     for idx, (image, label) in enumerate(data_loader):
         if not config.validation_stats and not config.generate_images:
             break
+
         image = image.to(device)
         label = label.to(device)
         prediction = net(image)
@@ -95,7 +96,7 @@ def plot_training_charts(config, device):
     if 'acc_val' in data[config.fold]:
         acc_val = data[config.fold]['acc_val']
         loss_val = np.clip(data[config.fold]['loss_val'], 0, 1)
-        x_points = np.arange(len(acc_val), step=config.validation_epochs)
+        x_points = np.arange(len(acc_val)*config.validation_epochs, step=config.validation_epochs)
         ax1.scatter(x_points, acc_val, c='red', label='Val acc')
         ax2.scatter(x_points, loss_val, c='blue', label='Val loss')
     ax1.legend()

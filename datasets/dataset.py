@@ -3,6 +3,8 @@ from abc import ABC
 from PIL import Image
 from torch.utils.data import Dataset
 from torchvision.transforms import transforms
+import torchvision.transforms.functional as t_func
+import torch
 
 imagenet_norm = {'mean': [0.485, 0.456, 0.406],
                  'std': [0.229, 0.224, 0.225]}
@@ -16,6 +18,23 @@ def transform_image(size):
         transforms.ToTensor(),
         transforms.Normalize(**imagenet_norm)
     ])
+
+
+def augment(im, mask):
+    size = im.shape[-2:]
+    i, j, h, w = transforms.RandomResizedCrop.get_params(im, [0.95, 0.95], [1.0, 1.0])
+    im = t_func.resized_crop(im, i, j, h, w, size, interpolation=Image.BILINEAR)
+    mask = t_func.resized_crop(mask, i, j, h, w, size, interpolation=Image.NEAREST)
+
+    ang = transforms.RandomRotation.get_params([-5, 5])
+    im = t_func.rotate(im, ang, interpolation=Image.BILINEAR)
+    mask = t_func.rotate(mask, ang, interpolation=Image.NEAREST, fill=[7, 11, 13])
+
+    if torch.rand(1) < 0.5:
+        im = t_func.hflip(im)
+        mask = t_func.hflip(mask)
+
+    return im, mask
 
 
 class GenericDataset(Dataset, ABC):

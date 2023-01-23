@@ -56,6 +56,7 @@ def load_execution_data(config):
     config.model_config = info['model_config']
     config.idx_seed = info['idx_seed']
     config.dataset_name = info['dataset_name']
+    config.validation_epochs = info['validation_epochs']
 
     train_info_path = path.join(config.train_path, 'training_results')
     config._training_status = torch.load(train_info_path)
