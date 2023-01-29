@@ -104,6 +104,7 @@ def plot_training_charts(config, device):
     fig.tight_layout()
     plt.savefig(path.join(config.test_path, f'{config.name}_chart_fold{config.fold}.jpg'))
     # plt.show()
+    plt.close(fig)
 
 
 def plot_and_save(image, predicted_label, im_label, idx, config, legend):
@@ -125,5 +126,4 @@ def plot_and_save(image, predicted_label, im_label, idx, config, legend):
     plt.subplots_adjust(top=0.89)
     # plt.show()
     plt.savefig(path.join(config.test_path, f'{config.fold}_{idx}.jpg'))
-    fig.clear()
-    plt.cla(), plt.clf()
+    plt.close(fig)
