@@ -183,12 +183,15 @@ def train_net_with_validation(config, dataset, train_sampler=None, val_sampler=N
     optimizer = eval(net_config['optimizer']['name'])(net.parameters(), **net_config['optimizer']['params'])
     criterion = eval(net_config['loss'])()
 
+    scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 10)
+    scheduler.step(8)
     prefix = ''
     if config.folds > 1:
         prefix = f'Fold {config.fold}, '
 
     for epoch in range(curr_epoch, config.max_epochs):
         net.train()
+        scheduler.step()
         config._training = True
         with tqdm(data_loader, unit="batch") as tq_loader:
             for image, label in tq_loader:
