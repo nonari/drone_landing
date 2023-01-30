@@ -212,15 +212,15 @@ def train_net_with_validation(config, dataset, train_sampler=None, val_sampler=N
             save_checkpoint(config, net, epoch, 0)
             net.eval()
             loss_val, acc_val = 0, 0
-            with tqdm(val_loader, unit="batch") as tq_loader:
-                for image, label in tq_loader:
-                    tq_loader.set_description(f'VALIDATION Fold {prefix}Epoch {epoch}')
+            with tqdm(val_loader, unit="batch") as tq_loader2:
+                for image, label in tq_loader2:
+                    tq_loader2.set_description(f'VALIDATION Fold {prefix}Epoch {epoch}')
                     image, label = image.to(device=device), label.to(device=device)
                     prediction = net(image)
                     acc, loss = custom_metrics.calc_acc(prediction, label), criterion(prediction, label)
                     loss_val += loss.item()
                     acc_val += acc
-                    tq_loader.set_postfix(loss=loss.item(), acc=acc)
+                    tq_loader2.set_postfix(loss=loss.item(), acc=acc)
             loss_val /= val_loader.__len__()
             acc_val /= val_loader.__len__()
             add_data(data, config, epoch, acc_val, loss_val, val=True)
