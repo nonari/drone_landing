@@ -140,7 +140,7 @@ class TUGrazSortedDataset(GenericDataset):
         self._prepare_im = prepare_image(t_tugraz)
         device = torch.device('cuda' if torch.cuda.is_available() and config.gpu else 'cpu')
         self._prepare_lab = prepare_image(label_transformation(
-            tugraz_color_keys, net_config['input_size'], device))
+            new_tugraz_keys, net_config['input_size'], device))
 
     def p_to_i(self, p):
         return [self.inv_idx[k] for k in p]
@@ -165,7 +165,7 @@ class TUGrazSortedDataset(GenericDataset):
         return 14
 
     def classnames(self):
-        return tugraz_classnames
+        return new_tugraz_classnames
 
     def colors(self):
         return tugraz_color_keys
