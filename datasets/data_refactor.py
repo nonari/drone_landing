@@ -180,5 +180,3 @@ def downsize_rural():
         res_label.close()
         label.close()
 
-
-group()

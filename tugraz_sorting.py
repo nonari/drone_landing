@@ -109,7 +109,7 @@ def kmeans():
         idx = np.where(km.labels_ == i)
         idx_paths = image_paths[idx]
         for idx_path in idx_paths:
-            new_p = path.join(path.dirname(path.dirname(idx_path)), new_images_folder,f'{i}_'+path.basename(idx_path))
+            new_p = path.join(path.dirname(path.dirname(idx_path)), new_images_folder, f'{i}_'+path.basename(idx_path))
             copyfile(idx_path, new_p)
 
 kmeans()
