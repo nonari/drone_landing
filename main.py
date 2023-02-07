@@ -6,6 +6,7 @@ from training import train_net, train_net_with_validation
 import fire
 from torch.utils.data import SubsetRandomSampler
 from datasets.tugraz import TUGrazDataset
+from datasets.tugraz_sort import TUGrazSortedDataset
 from datasets.aeroscapes import AeroscapesDataset
 from os import path
 import torch
@@ -29,6 +30,8 @@ def select_dataset(config):
         dataset = AeroscapesDataset(config)
     elif dataset_name == 'ruralscapes':
         dataset = RuralscapesDataset(config)
+    elif dataset_name == 'graz_sorted':
+        dataset = TUGrazSortedDataset(config)
     else:
         raise Exception(f'Dataset name {dataset_name}, not found.')
 

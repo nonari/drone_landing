@@ -1,4 +1,3 @@
-from torch import optim
 
 
 class MockScheduler:
