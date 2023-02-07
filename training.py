@@ -7,6 +7,7 @@ from os import path, remove
 from tqdm import tqdm
 from shutil import copy
 import custom_metrics
+from mock_scheduler import MockScheduler
 
 
 def configure_net(net_config, classes):
@@ -183,8 +184,11 @@ def train_net_with_validation(config, dataset, train_sampler=None, val_sampler=N
     optimizer = eval(net_config['optimizer']['name'])(net.parameters(), **net_config['optimizer']['params'])
     criterion = eval(net_config['loss'])()
 
-    scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, 10)
-    scheduler.step(8)
+    if 'lr_scheduler' in net_config:
+        scheduler = eval(net_config['lr_scheduler']['name'])(optimizer, **net_config['lr_scheduler']['params'])
+        scheduler.step(8)
+    else:
+        scheduler = MockScheduler()
     prefix = ''
     if config.folds > 1:
         prefix = f'Fold {config.fold}, '
