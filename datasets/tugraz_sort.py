@@ -162,7 +162,7 @@ class TUGrazSortedDataset(GenericDataset):
         return folds
 
     def classes(self):
-        return 24
+        return 14
 
     def classnames(self):
         return tugraz_classnames
