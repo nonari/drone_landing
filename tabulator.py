@@ -6,8 +6,8 @@ from os import path
 class Tabulator:
     def __init__(self, header, rownames):
         self.content = ''
-        self.rownames = list(rownames)
-        self.space = len(sorted(header + rownames, key=lambda x: len(x))[-1])+2
+        self.rownames = list(map(lambda ww: str(ww), rownames))
+        self.space = len(sorted(header + self.rownames, key=lambda x: len(x))[-1])+2
         for w in header:
             self.add_word(w)
         self.content += '\n'

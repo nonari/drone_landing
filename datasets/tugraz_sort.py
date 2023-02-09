@@ -168,11 +168,11 @@ class TUGrazSortedDataset(GenericDataset):
         return new_tugraz_classnames
 
     def colors(self):
-        return tugraz_color_keys
+        return new_tugraz_keys
 
     def pred_to_color_mask(self, true, pred):
-        pred_mask = tugraz_color_keys[pred]
-        true_mask = tugraz_color_keys[true]
+        pred_mask = new_tugraz_keys[pred]
+        true_mask = new_tugraz_keys[true]
         return true_mask, pred_mask
 
     def __len__(self):
