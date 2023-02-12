@@ -8,6 +8,7 @@ from tqdm import tqdm
 from shutil import copy
 import custom_metrics
 from mock_scheduler import MockScheduler
+from custom_models import safeuav
 
 
 def configure_net(net_config, classes):
@@ -25,6 +26,8 @@ def configure_net(net_config, classes):
             encoder_weights='imagenet' if net_config['pretrained'] else None,
             in_channels=3,
             classes=classes)
+    elif net_type == 'safeuav':
+        net = safeuav.UNet_MDCB(classes, in_channels=3)
     else:
         raise NotImplementedError
 
