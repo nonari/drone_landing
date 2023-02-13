@@ -2,8 +2,11 @@ import numpy as np
 import torch
 from os import path
 from glob import glob
+
+import torchvision.transforms
 from PIL import Image
 import importlib
+import torchvision.transforms.functional as t_func
 
 from datasets.dataset import transform_image, GenericDataset, augment
 
@@ -80,6 +83,52 @@ def label_transformation(color_keys, new_size, device):
         lab_res = label.resize(new_size[::-1], Image.NEAREST)
         return lab_res
     return f
+
+
+def randomHueSaturationValue(image, hue_shift_limit=(-0.5, 0.5),
+                             sat_shift_limit=(0, 1),
+                             val_shift_limit=(0, 1), u=0.5):
+    if np.random.random() < u:
+        trans = torchvision.transforms.ColorJitter(
+            brightness=val_shift_limit,
+            saturation=sat_shift_limit,
+            hue=hue_shift_limit)
+        image = trans(image)
+
+    return image
+
+
+def randomShiftScaleRotate(image, mask, u=0.5):
+    if np.random.random() < u:
+        size = image.shape[-2:]
+        i, j, h, w = torchvision.transforms.RandomResizedCrop.get_params(image, [0.95, 0.95], [1.0, 1.0])
+        image = t_func.resized_crop(image, i, j, h, w, size, interpolation=Image.BILINEAR)
+        mask = t_func.resized_crop(mask, i, j, h, w, size, interpolation=Image.NEAREST)
+
+    return image, mask
+
+
+def randomHorizontalFlip(image, mask, u=0.5):
+    if np.random.random() < u:
+        image = np.flip(image, 1)
+        mask = np.flip(mask, 1)
+
+    return image, mask
+
+
+def augment_rural(img, label):
+    img = randomHueSaturationValue(
+        img,
+        hue_shift_limit=(0, .2),
+        sat_shift_limit=(0, .02),
+        val_shift_limit=(-0.06, .06)
+    )
+
+    img, label = randomShiftScaleRotate(img, label)
+
+    img, label = randomHorizontalFlip(img, label)
+
+    return img, label
 
 
 class RuralscapesDataset(GenericDataset):

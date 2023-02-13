@@ -9,6 +9,7 @@ from shutil import copy
 import custom_metrics
 from mock_scheduler import MockScheduler
 from custom_models import safeuav
+from custom_models import losses
 
 
 def configure_net(net_config, classes):
