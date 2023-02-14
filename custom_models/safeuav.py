@@ -39,7 +39,7 @@ class Up(nn.Module):
                                              padding_mode='zeros', bias=True, stride=(2, 2))
 
         self.convs = nn.Sequential(
-            nn.Conv2d(out_channels, out_channels, kernel_size=(3, 3), padding='same', bias=True),
+            nn.Conv2d(in_channels, out_channels, kernel_size=(3, 3), padding='same', bias=True),
             nn.ReLU(),
             nn.Conv2d(out_channels, out_channels, kernel_size=(3, 3), padding='same', bias=True),
             nn.ReLU(),
@@ -54,7 +54,7 @@ class Up(nn.Module):
         x1 = F.pad(x1, [diffX // 2, diffX - diffX // 2,
                         diffY // 2, diffY - diffY // 2])
 
-        concat = torch.cat([x2, x1])
+        concat = torch.cat([x2, x1], dim=1)
         return self.convs(concat)
 
 

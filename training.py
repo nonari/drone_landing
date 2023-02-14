@@ -9,6 +9,7 @@ from shutil import copy
 import custom_metrics
 from mock_scheduler import MockScheduler
 from custom_models import safeuav
+import custom_models
 from custom_models import losses
 
 
@@ -192,7 +193,7 @@ def train_net_with_validation(config, dataset, train_sampler=None, val_sampler=N
         scheduler = eval(net_config['lr_scheduler']['name'])(optimizer, **net_config['lr_scheduler']['params'])
         scheduler.step(8)
     else:
-        scheduler = MockScheduler()
+        scheduler = MockScheduler(optimizer)
     prefix = ''
     if config.folds > 1:
         prefix = f'Fold {config.fold}, '
