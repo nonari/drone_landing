@@ -111,6 +111,7 @@ class UNet_MDCB(nn.Module):
         up2 = self.up2(up1, s2)
         up3 = self.up3(up2, s1)
         res = self.classify(up3)
+        res = self.sigmoid(res)
 
         return res
 
