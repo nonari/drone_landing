@@ -40,9 +40,9 @@ class Up(nn.Module):
 
         self.convs = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=(3, 3), padding='same', bias=True),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
             nn.Conv2d(out_channels, out_channels, kernel_size=(3, 3), padding='same', bias=True),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
         )
 
     def forward(self, x1, x2):
@@ -68,7 +68,7 @@ def get_dilate(in_channels, out_channels, dilation, kernel_size=(3, 3)):
 class UNet_MDCB(nn.Module):
     def __init__(self, classes, in_channels=3):
         super().__init__()
-        init_nb = 64
+        init_nb = 24
         self.double1 = Double(in_channels, init_nb)
         self.down1 = Down(init_nb)
         self.double2 = Double(init_nb, init_nb * 2)

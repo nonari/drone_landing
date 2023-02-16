@@ -46,6 +46,11 @@ train_folds = [['0101', '0053', '0089', '0116', '0043'],
                ['0044', '0085', '0061', '0046', '0118'],
                ['0045', '0088', '0114', '0050', '0097']]
 
+split_train_ids = ['0044', '0043', '0045', '0046', '0047', '0050',
+                   '0053', '0085', '0093', '0097', '0101', '0114', '0118']
+
+split_test_ids = ['0051', '0056', '0061', '0086', '0088', '0089', '0116']
+
 
 def get_all(dirname, ids):
     all_frames = []
@@ -199,6 +204,7 @@ class RuralscapesDataset(GenericDataset):
         return self._image_paths.__len__()
 
     def __getitem__(self, item):
+        # TODO move augment to Dataloader
         if self.config.train and self.config._training:
             tensor_im = self._prepare_im(self._image_paths[item])
             pil_lab = self._prepare_lab(self._label_paths[item])
@@ -210,3 +216,20 @@ class RuralscapesDataset(GenericDataset):
             pil_lab = self._prepare_lab(self._label_paths[item])
             t_lab = label_to_tensor(np.asarray(pil_lab), ruralscapes_color_keys)
             return tensor_im, t_lab
+
+
+class RuralscapesOrigSplit(RuralscapesDataset):
+    def __init__(self, *args):
+        super().__init__(*args)
+
+    def get_folds(self):
+        folds = []
+        if self.config.train:
+            fold0_train = get_all(self.images_root, split_train_ids)
+            fold0_val = get_all(self.images_root, split_test_ids)
+            folds.append((self.p_to_i(fold0_train), self.p_to_i(fold0_val)))
+        else:
+            fold_test = get_all(self.images_root, split_test_ids)
+            folds.append(self.p_to_i(fold_test))
+        return folds
+
