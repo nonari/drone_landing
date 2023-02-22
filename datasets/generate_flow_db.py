@@ -55,6 +55,7 @@ def extract_frames(video_file, prefix):
         is_read, frame = cap.read()
         if not is_read:
             print(f'ALERTA {prefix}')
+            break
         else:
             frame = cv2.resize(frame, (1280, 720), interpolation=cv2.INTER_CUBIC)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -64,7 +65,7 @@ def extract_frames(video_file, prefix):
             backward_flow = cv2.calcOpticalFlowFarneback(frame, last_frame, None, 0.5, 3, 15, 3, 5, 1.2, 0)[..., :2]
             backward_flow = np.swapaxes(backward_flow, 0, 1)
             backward_db['flow'][count] = backward_flow
-            if count == max_frame:
+            if count == max_frame - 1:
                 break
 
         last_frame = frame
