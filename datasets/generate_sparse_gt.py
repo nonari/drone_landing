@@ -46,8 +46,8 @@ def gt():
             label = Image.open(label_path).resize((1280, 720))
             label = np.asarray(label)
             sparse = np.moveaxis(compute_sparse_label(label), 0, 1)
-            frame_name = path.join(dest_lab_dir, name, f'frame_{frame_no}.npy')
-            np.save(frame_name, sparse)
+            frame_name = path.join(dest_lab_dir, name, f'frame_{frame_no}.npz')
+            np.savez_compressed(frame_name, sparse)
 
 
 if __name__ == '__main__':

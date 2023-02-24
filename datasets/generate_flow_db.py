@@ -3,6 +3,8 @@ import sys
 import cv2
 from os import path
 from glob import glob
+
+import fire
 import h5py
 import numpy as np
 
@@ -32,7 +34,10 @@ vid_len = {
 split_test_ids = {'0051', '0056', '0061', '0086', '0088', '0089', '0116'}
 
 
-def extract_ruralscapes(vid=None):
+def extract_ruralscapes(**kwargs):
+    vid = kwargs['vid'] if 'vid' in kwargs else None
+    start = kwargs['start'] if 'start' in kwargs else None
+    end = kwargs['end'] if 'end' in kwargs else None
     root = '/home/nonari/windows/ruralscapes/videos'
     videos = glob(root+'/*')
     videos = sorted(videos)
@@ -46,15 +51,18 @@ def extract_ruralscapes(vid=None):
         if num in split_test_ids:
             continue
         prefix = path.join(path.dirname(root), 'flow_farneback', name)
-        extract_frames(v, prefix)
+        extract_frames(v, prefix, start, end)
 
 
-def extract_frames(video_file, prefix):
+def extract_frames(video_file, prefix, start=None, end=None):
     forward_db = h5py.File(f'{prefix}_forward.h5', 'w')
     backward_db = h5py.File(f'{prefix}_backward.h5', 'w')
 
     vid_id = int(path.basename(video_file).split('.')[0][4:8])
-    max_frame = vid_len[vid_id]
+    if end is None:
+        max_frame = vid_len[vid_id]
+    else:
+        max_frame = end
     forward_db.create_dataset('flow', (max_frame, 1280, 720, 2), chunks=(1, 1280, 720, 2), compression="gzip", compression_opts=4)
     backward_db.create_dataset('flow', (max_frame, 1280, 720, 2), chunks=(1, 1280, 720, 2), compression="gzip", compression_opts=4)
     cap = cv2.VideoCapture(video_file)
@@ -69,6 +77,8 @@ def extract_frames(video_file, prefix):
             print(f'ALERTA {prefix}')
             break
         else:
+            if start is not None and count < start:
+                continue
             print(f'{vid_id}: {count}/{max_frame}')
             frame = cv2.resize(frame, (1280, 720), interpolation=cv2.INTER_CUBIC)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -89,7 +99,4 @@ def extract_frames(video_file, prefix):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1:
-        extract_ruralscapes(vid=sys.argv[1])
-    else:
-        extract_ruralscapes()
+    fire.Fire(extract_ruralscapes)
