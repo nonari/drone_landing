@@ -19,7 +19,7 @@ ruralscapes_color_keys = np.asarray([
     [0, 0, 255],
 ])
 
-ROOT = '/home/nonari/Documentos/ruralscapes/labels/'
+ROOT = '/home/nonari/windows/ruralscapes/labels/'
 
 
 def compute_sparse_label(label):
@@ -32,21 +32,23 @@ def compute_sparse_label(label):
 
 
 def gt():
-    sp = path.join(ROOT, f'manual_labels')
-    df = path.join(ROOT, f'sparse_labels')
-    video_paths = glob(path.join(sp, '*'))
+    orig_lab_dir = path.join(ROOT, f'manual_labels')
+    dest_lab_dir = path.join(ROOT, f'sparse_labels')
+    makedirs(dest_lab_dir, exist_ok=True)
+    video_paths = glob(path.join(orig_lab_dir, '*'))
     for f_path in video_paths:
         name = path.basename(f_path)
-        sparse_frames_dir = path.join(df, name)
+        sparse_frames_dir = path.join(dest_lab_dir, name)
         makedirs(sparse_frames_dir, exist_ok=True)
-        label_paths = glob(path.join(sp, f'{name}/*'))
+        label_paths = glob(path.join(orig_lab_dir, f'{name}/*'))
         for label_path in label_paths:
             frame_no = label_path.split('.')[0][-6:]
             label = Image.open(label_path).resize((1280, 720))
             label = np.asarray(label)
             sparse = np.moveaxis(compute_sparse_label(label), 0, 1)
-            frame_name = path.join(df, name, f'frame_{frame_no}.npy')
+            frame_name = path.join(dest_lab_dir, name, f'frame_{frame_no}.npy')
             np.save(frame_name, sparse)
 
 
-gt()
+if __name__ == '__main__':
+    gt()

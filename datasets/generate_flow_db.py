@@ -1,3 +1,5 @@
+import sys
+
 import cv2
 from os import path
 from glob import glob
@@ -27,13 +29,23 @@ vid_len = {
     118: 3975
 }
 
+split_test_ids = {'0051', '0056', '0061', '0086', '0088', '0089', '0116'}
 
-def extract_ruralscapes():
-    root = '/home/nonari/Documentos/ruralscapes/videos'
+
+def extract_ruralscapes(vid=None):
+    root = '/home/nonari/windows/ruralscapes/videos'
     videos = glob(root+'/*')
+    videos = sorted(videos)
+
+    if vid is not None:
+        videos = [path.join(root, f'DJI_{vid}.MP4')]
+
     for v in videos:
         name = path.basename(v).split('.')[0]
-        prefix = path.join(path.dirname(root), 'flow_lk', name)
+        num = name[-4:]
+        if num in split_test_ids:
+            continue
+        prefix = path.join(path.dirname(root), 'flow_farneback', name)
         extract_frames(v, prefix)
 
 
@@ -43,8 +55,8 @@ def extract_frames(video_file, prefix):
 
     vid_id = int(path.basename(video_file).split('.')[0][4:8])
     max_frame = vid_len[vid_id]
-    forward_db.create_dataset('flow', (max_frame, 1280, 720, 2), chunks=(1, 1280, 720, 2))
-    backward_db.create_dataset('flow', (max_frame, 1280, 720, 2), chunks=(1, 1280, 720, 2))
+    forward_db.create_dataset('flow', (max_frame, 1280, 720, 2), chunks=(1, 1280, 720, 2), compression="gzip", compression_opts=4)
+    backward_db.create_dataset('flow', (max_frame, 1280, 720, 2), chunks=(1, 1280, 720, 2), compression="gzip", compression_opts=4)
     cap = cv2.VideoCapture(video_file)
     print(prefix)
     is_read, frame = cap.read()
@@ -57,13 +69,14 @@ def extract_frames(video_file, prefix):
             print(f'ALERTA {prefix}')
             break
         else:
+            print(f'{vid_id}: {count}/{max_frame}')
             frame = cv2.resize(frame, (1280, 720), interpolation=cv2.INTER_CUBIC)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             forward_flow = cv2.calcOpticalFlowFarneback(last_frame, frame, None, 0.5, 3, 15, 3, 5, 1.2, 0)[..., :2]
-            forward_flow = np.swapaxes(forward_flow, 0, 1)
+            forward_flow = np.around(np.swapaxes(forward_flow, 0, 1), decimals=3)
             forward_db['flow'][count] = forward_flow
             backward_flow = cv2.calcOpticalFlowFarneback(frame, last_frame, None, 0.5, 3, 15, 3, 5, 1.2, 0)[..., :2]
-            backward_flow = np.swapaxes(backward_flow, 0, 1)
+            backward_flow = np.around(np.swapaxes(backward_flow, 0, 1), decimals=3)
             backward_db['flow'][count] = backward_flow
             if count == max_frame - 1:
                 break
@@ -75,4 +88,8 @@ def extract_frames(video_file, prefix):
     backward_db.close()
 
 
-extract_ruralscapes()
+if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        extract_ruralscapes(vid=sys.argv[1])
+    else:
+        extract_ruralscapes()
