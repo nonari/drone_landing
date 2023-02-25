@@ -62,7 +62,7 @@ def extract_frames(video_file, prefix, start=None, end=None):
     if end is None:
         max_frame = vid_len[vid_id]
     else:
-        max_frame = end
+        max_frame = end + 1
     forward_db.create_dataset('flow', (max_frame, 1280, 720, 2), chunks=(1, 1280, 720, 2), compression="gzip", compression_opts=4)
     backward_db.create_dataset('flow', (max_frame, 1280, 720, 2), chunks=(1, 1280, 720, 2), compression="gzip", compression_opts=4)
     cap = cv2.VideoCapture(video_file)
@@ -77,19 +77,21 @@ def extract_frames(video_file, prefix, start=None, end=None):
             print(f'ALERTA {prefix}')
             break
         else:
-            if start is not None and count < start:
-                continue
-            print(f'{vid_id}: {count}/{max_frame}')
-            frame = cv2.resize(frame, (1280, 720), interpolation=cv2.INTER_CUBIC)
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            forward_flow = cv2.calcOpticalFlowFarneback(last_frame, frame, None, 0.5, 3, 15, 3, 5, 1.2, 0)[..., :2]
-            forward_flow = np.around(np.swapaxes(forward_flow, 0, 1), decimals=3)
-            forward_db['flow'][count] = forward_flow
-            backward_flow = cv2.calcOpticalFlowFarneback(frame, last_frame, None, 0.5, 3, 15, 3, 5, 1.2, 0)[..., :2]
-            backward_flow = np.around(np.swapaxes(backward_flow, 0, 1), decimals=3)
-            backward_db['flow'][count] = backward_flow
-            if count == max_frame - 1:
-                break
+            if start is not None and count == start - 1:
+                frame = cv2.resize(frame, (1280, 720), interpolation=cv2.INTER_CUBIC)
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            if start is None or count >= start:
+                print(f'{vid_id}: {count}/{max_frame}')
+                frame = cv2.resize(frame, (1280, 720), interpolation=cv2.INTER_CUBIC)
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                forward_flow = cv2.calcOpticalFlowFarneback(last_frame, frame, None, 0.5, 3, 15, 3, 5, 1.2, 0)[..., :2]
+                forward_flow = np.around(np.swapaxes(forward_flow, 0, 1), decimals=3)
+                forward_db['flow'][count] = forward_flow
+                backward_flow = cv2.calcOpticalFlowFarneback(frame, last_frame, None, 0.5, 3, 15, 3, 5, 1.2, 0)[..., :2]
+                backward_flow = np.around(np.swapaxes(backward_flow, 0, 1), decimals=3)
+                backward_db['flow'][count] = backward_flow
+                if count == max_frame - 1:
+                    break
 
         last_frame = frame
         count += 1
