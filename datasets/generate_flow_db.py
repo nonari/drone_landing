@@ -38,7 +38,7 @@ def extract_ruralscapes(**kwargs):
     vid = kwargs['vid'] if 'vid' in kwargs else None
     start = kwargs['start'] if 'start' in kwargs else None
     end = kwargs['end'] if 'end' in kwargs else None
-    root = '/home/nonari/windows/ruralscapes/videos'
+    root = '~/ruralscapes/light_videos'
     videos = glob(root+'/*')
     videos = sorted(videos)
 
@@ -74,7 +74,7 @@ def extract_frames(video_file, prefix, start=None, end=None):
     while True:
         is_read, frame = cap.read()
         if not is_read:
-            print(f'ALERTA {prefix}')
+            print(f'ENDED {prefix} at {count}')
             break
         else:
             if start is not None and count == start - 1:
