@@ -11,8 +11,8 @@ do
     j=0
     while ((j < iters))
     do
-        python3 ~/PycharmProjects/drone_landing/datasets/generate_flow_db.py -vid="$vid" -start="$ini" -end="$end"
-        python3 ~/PycharmProjects/segprop2/ruralscapes_demo.py -vid="$vid" -start_from="$ini" -stop_at="$end"
+        python3 ~/tfg/drone_landing/datasets/generate_flow_db.py -vid="$vid" -start="$ini" -end="$end"
+        python3 ~/tfg/segprop/ruralscapes_demo.py -vid="$vid" -start_from="$ini" -stop_at="$end"
         rm ~/ruralscapes/flow_farneback/*
         ini=$((ini+2000))
         end=$((end+2000))

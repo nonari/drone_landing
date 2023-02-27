@@ -38,7 +38,7 @@ def extract_ruralscapes(**kwargs):
     vid = kwargs['vid'] if 'vid' in kwargs else None
     start = kwargs['start'] if 'start' in kwargs else None
     end = kwargs['end'] if 'end' in kwargs else None
-    root = '~/ruralscapes/light_videos'
+    root = path.expanduser('~/tfg/ruralscapes/light_videos')
     videos = glob(root+'/*')
     videos = sorted(videos)
 
@@ -54,6 +54,9 @@ def extract_ruralscapes(**kwargs):
         extract_frames(v, prefix, start, end)
 
 
+CHUNK = 10
+
+
 def extract_frames(video_file, prefix, start=None, end=None):
     forward_db = h5py.File(f'{prefix}_forward.h5', 'w')
     backward_db = h5py.File(f'{prefix}_backward.h5', 'w')
@@ -62,42 +65,72 @@ def extract_frames(video_file, prefix, start=None, end=None):
     if end is None:
         max_frame = vid_len[vid_id]
     else:
-        max_frame = end + 1
-    forward_db.create_dataset('flow', (max_frame, 1280, 720, 2), chunks=(1, 1280, 720, 2), compression="gzip", compression_opts=4)
-    backward_db.create_dataset('flow', (max_frame, 1280, 720, 2), chunks=(1, 1280, 720, 2), compression="gzip", compression_opts=4)
+        max_frame = end
+    forward_db.create_dataset('flow', (max_frame, 1280, 720, 2), chunks=(CHUNK, 1280, 720, 2), compression="gzip", compression_opts=4)
+    backward_db.create_dataset('flow', (max_frame, 1280, 720, 2), chunks=(CHUNK, 1280, 720, 2), compression="gzip", compression_opts=4)
+    forward_buff = DBBuilder(forward_db, chunk_size=CHUNK)
+    backward_buff = DBBuilder(backward_db, chunk_size=CHUNK)
     cap = cv2.VideoCapture(video_file)
     print(prefix)
     is_read, frame = cap.read()
     last_frame = cv2.resize(frame, (1280, 720), interpolation=cv2.INTER_CUBIC)
     last_frame = cv2.cvtColor(last_frame, cv2.COLOR_BGR2GRAY)
-    count = 0
+    frame_count = 0
     while True:
         is_read, frame = cap.read()
         if not is_read:
-            print(f'ENDED {prefix} at {count}')
+            print(f'ENDED {prefix} at {frame_count}')
             break
         else:
-            if start is not None and count == start - 1:
+            if start is not None and frame_count == start - 1:
                 frame = cv2.resize(frame, (1280, 720), interpolation=cv2.INTER_CUBIC)
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            if start is None or count >= start:
-                print(f'{vid_id}: {count}/{max_frame}')
+            if start is None or frame_count >= start:
+                if frame_count % 10 == 0 or frame_count == max_frame:
+                    print(f'{vid_id}: {frame_count}/{max_frame}')
                 frame = cv2.resize(frame, (1280, 720), interpolation=cv2.INTER_CUBIC)
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
                 forward_flow = cv2.calcOpticalFlowFarneback(last_frame, frame, None, 0.5, 3, 15, 3, 5, 1.2, 0)[..., :2]
                 forward_flow = np.around(np.swapaxes(forward_flow, 0, 1), decimals=3)
-                forward_db['flow'][count] = forward_flow
+                forward_buff.add(forward_flow)
+
                 backward_flow = cv2.calcOpticalFlowFarneback(frame, last_frame, None, 0.5, 3, 15, 3, 5, 1.2, 0)[..., :2]
                 backward_flow = np.around(np.swapaxes(backward_flow, 0, 1), decimals=3)
-                backward_db['flow'][count] = backward_flow
-                if count == max_frame - 1:
+                backward_buff.add(backward_flow)
+                if frame_count == max_frame:
+                    forward_buff.flush()
+                    backward_buff.flush()
                     break
 
         last_frame = frame
-        count += 1
+        frame_count += 1
 
     forward_db.close()
     backward_db.close()
+
+
+class DBBuilder:
+    def __init__(self, db, chunk_size=10):
+        self.chunk_size = chunk_size
+        self.buffer = []
+        self.idx = 0
+        self.accum = 0
+        self.db = db
+
+    def add(self, slice):
+        self.buffer.append(slice)
+        self.accum += 1
+        if self.accum == self.chunk_size:
+            self.flush()
+
+    def flush(self):
+        if self.accum != 0:
+            stacked = np.stack(self.buffer)
+            self.db['flow'][self.idx:self.idx+self.accum] = stacked
+        self.idx += self.accum
+        self.accum = 0
+        self.buffer.clear()
 
 
 if __name__ == '__main__':
