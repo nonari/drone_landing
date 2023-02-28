@@ -38,7 +38,7 @@ def extract_ruralscapes(**kwargs):
     vid = kwargs['vid'] if 'vid' in kwargs else None
     start = kwargs['start'] if 'start' in kwargs else None
     end = kwargs['end'] if 'end' in kwargs else None
-    root = path.expanduser('~/tfg/ruralscapes/light_videos')
+    root = path.expanduser('~/tfm/ruralscapes/light_videos')
     videos = glob(root+'/*')
     videos = sorted(videos)
 
