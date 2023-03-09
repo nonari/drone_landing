@@ -127,13 +127,20 @@ def refactor_tugraz_labels():
         imo.close()
 
 
+split_train_ids = ['0044', '0043', '0045', '0046', '0047', '0050',
+                   '0053', '0085', '0093', '0097', '0101', '0114']
+
+
 def extract_ruralscapes():
     root = '/home/nonari/Documentos/ruralscapes/videos'
     videos = glob(root+'/*')
     for v in videos:
         name = path.basename(v).split('.')[0]
-        prefix = path.join(path.dirname(root), 'frames', name)
-        extract_frames(v, prefix)
+        idv = name[-4:]
+        if idv in split_train_ids:
+            print(idv)
+            prefix = path.join(path.dirname(root), 'frames', name)
+            extract_frames(v, prefix)
 
 
 def extract_frames(video_file, prefix):
@@ -149,11 +156,13 @@ def extract_frames(video_file, prefix):
             cv2.imwrite(prefix + f"_{(count-1):06}.jpg", resized)
             cap.release()
             break
-        elif count % 50 == 0:
+        elif count % 50 != 0 and count % 25 == 0:
             resized = cv2.resize(frame, (1280, 720), interpolation=cv2.INTER_CUBIC)
             cv2.imwrite(prefix + f"_{count:06}.jpg", resized)
         last_frame = frame
         count += 1
+
+extract_ruralscapes()
 
 
 def group():
