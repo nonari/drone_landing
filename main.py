@@ -1,7 +1,7 @@
 from os import makedirs
 from shutil import rmtree
 from config import Config, TestConfig
-from datasets.ruralscapes import RuralscapesDataset, RuralscapesOrigSplit
+from datasets.ruralscapes import RuralscapesDataset, RuralscapesOrigSplit, RuralscapesOrigSegprop
 from training import train_net, train_net_with_validation
 import fire
 from torch.utils.data import SubsetRandomSampler
@@ -34,6 +34,8 @@ def select_dataset(config):
         dataset = TUGrazSortedDataset(config)
     elif dataset_name == 'ruralscapes_split':
         dataset = RuralscapesOrigSplit(config)
+    elif dataset_name == 'ruralscapes_segprop':
+        dataset = RuralscapesOrigSegprop(config)
     else:
         raise Exception(f'Dataset name {dataset_name}, not found.')
 

@@ -1,5 +1,5 @@
 from os import path, makedirs
-
+from shutil import copyfile
 import numpy as np
 from PIL import Image
 
@@ -139,7 +139,7 @@ def extract_ruralscapes():
         idv = name[-4:]
         if idv in split_train_ids:
             print(idv)
-            prefix = path.join(path.dirname(root), 'frames', name)
+            prefix = path.join(path.dirname(root), 'frames2', name)
             extract_frames(v, prefix)
 
 
@@ -161,9 +161,6 @@ def extract_frames(video_file, prefix):
             cv2.imwrite(prefix + f"_{count:06}.jpg", resized)
         last_frame = frame
         count += 1
-
-extract_ruralscapes()
-
 
 def group():
     frame_paths = glob('/home/nonari/Documentos/ruralscapes/frames/*')
@@ -189,3 +186,15 @@ def downsize_rural():
         res_label.close()
         label.close()
 
+
+def copy_labels():
+    segprop_paths = glob(path.expanduser('~/Documentos/ruralscapes/segprop/*'))
+    dest_path = path.expanduser('~/Documentos/ruralscapes/labels/segprop_labels')
+
+    for p in segprop_paths:
+        frame_idx = int(p[-6:-4])
+        if frame_idx % 50 != 0 and frame_idx % 25 == 0:
+            filename = path.basename(p)
+            copyfile(p, path.join(dest_path, filename))
+
+copy_labels()

@@ -25,7 +25,6 @@ ruralscapes_color_keys = np.asarray([
     [0, 0, 255],
 ])
 
-
 ruralscapes_classnames = [
     'building',
     'land',
@@ -52,12 +51,8 @@ split_train_ids = ['0044', '0043', '0045', '0046', '0047', '0050',
 split_test_ids = ['0051', '0056', '0061', '0086', '0088', '0089', '0116']
 
 
-def get_all(dirname, ids):
-    all_frames = []
-    for i in ids:
-        id_frames_exp = path.join(dirname, f'*_{i}_*')
-        id_frames_paths = glob(id_frames_exp)
-        all_frames += id_frames_paths
+def get_all(paths, ids):
+    all_frames = list(filter(lambda p: p[-15:-11] in ids, paths))
 
     return all_frames
 
@@ -80,6 +75,7 @@ def prepare_image(transformation):
         im_tensor = transformation(im_orig)
         im_orig.close()
         return im_tensor
+
     return f
 
 
@@ -87,6 +83,7 @@ def label_transformation(color_keys, new_size, device):
     def f(label):
         lab_res = label.resize(new_size[::-1], Image.NEAREST)
         return lab_res
+
     return f
 
 
@@ -139,22 +136,19 @@ def augment_rural(img, label):
 class RuralscapesDataset(GenericDataset):
     def __init__(self, config):
         self.config = config
-        self.images_root = path.join(config.rural_root, 'frames')
+        images_root = path.join(config.rural_root, 'frames')
         labels_root = path.join(config.rural_root, 'labels/resized_labels')
 
-        image_paths = glob(self.images_root + '/*.jpg')
+        image_paths = glob(images_root + '/*.jpg')
         label_paths = glob(labels_root + '/*.png')
-        image_paths = sorted(image_paths, key=lambda x: (int(path.basename(x).split('_')[1]),
-                                                         int(path.basename(x).split('_')[2].split('.')[0])))
-        label_paths = sorted(label_paths, key=lambda x: (int(path.basename(x).split('_')[2]),
-                                                         int(path.basename(x).split('_')[3].split('.')[0])))
+        self.image_paths = sorted(image_paths, key=lambda x: (int(path.basename(x).split('_')[1]),
+                                                              int(path.basename(x).split('_')[2].split('.')[0])))
+        self.label_paths = sorted(label_paths, key=lambda x: (int(path.basename(x).split('_')[2]),
+                                                              int(path.basename(x).split('_')[3].split('.')[0])))
 
         self.inv_idx = {}
-        for idx, k in enumerate(image_paths):
-            self.inv_idx[k] = idx
 
-        self._image_paths = np.asarray(image_paths)
-        self._label_paths = np.asarray(label_paths)
+        self.index()
 
         net_config = importlib.import_module(f'net_configurations.{config.model_config}').CONFIG
         t_rural = transform_image(net_config['input_size'])
@@ -164,23 +158,27 @@ class RuralscapesDataset(GenericDataset):
         self._prepare_lab = prepare_image(label_transformation(
             ruralscapes_color_keys, net_config['input_size'], device))
 
+    def index(self):
+        for idx, k in enumerate(self._image_paths):
+            self.inv_idx[k] = idx
+
     def p_to_i(self, p):
         return [self.inv_idx[k] for k in p]
 
     def get_folds(self):
         folds = []
         if self.config.train:
-            fold0_train = get_all(self.images_root, train_folds[0] + train_folds[1])
-            fold0_val = get_all(self.images_root, train_folds[2])
-            fold1_train = get_all(self.images_root, train_folds[1] + train_folds[2])
-            fold1_val = get_all(self.images_root, train_folds[0])
-            fold2_train = get_all(self.images_root, train_folds[0] + train_folds[2])
-            fold2_val = get_all(self.images_root, train_folds[1])
+            fold0_train = get_all(self._image_paths, train_folds[0] + train_folds[1])
+            fold0_val = get_all(self._image_paths, train_folds[2])
+            fold1_train = get_all(self._image_paths, train_folds[1] + train_folds[2])
+            fold1_val = get_all(self._image_paths, train_folds[0])
+            fold2_train = get_all(self._image_paths, train_folds[0] + train_folds[2])
+            fold2_val = get_all(self._image_paths, train_folds[1])
             folds.append((self.p_to_i(fold0_train), self.p_to_i(fold0_val)))
             folds.append((self.p_to_i(fold1_train), self.p_to_i(fold1_val)))
             folds.append((self.p_to_i(fold2_train), self.p_to_i(fold2_val)))
         else:
-            fold_test = get_all(self.images_root, test_ids)
+            fold_test = get_all(self._image_paths, test_ids)
             folds.append((self.p_to_i(fold_test)))
             folds.append((self.p_to_i(fold_test)))
             folds.append((self.p_to_i(fold_test)))
@@ -225,11 +223,26 @@ class RuralscapesOrigSplit(RuralscapesDataset):
     def get_folds(self):
         folds = []
         if self.config.train:
-            fold0_train = get_all(self.images_root, split_train_ids)
-            fold0_val = get_all(self.images_root, split_test_ids)
+            fold0_train = get_all(self._image_paths, split_train_ids)
+            fold0_val = get_all(self._image_paths, split_test_ids)
             folds.append((self.p_to_i(fold0_train), self.p_to_i(fold0_val)))
         else:
-            fold_test = get_all(self.images_root, split_test_ids)
+            fold_test = get_all(self._image_paths, split_test_ids)
             folds.append(self.p_to_i(fold_test))
         return folds
+
+
+class RuralscapesOrigSegprop(RuralscapesOrigSplit):
+    def __init__(self, *args):
+        super().__init__(*args)
+        labels_root = path.join(self.config.rural_root, 'labels/segprop_labels')
+        images_root = path.join(self.config.rural_root, 'frames2')
+        image_paths = glob(path.join(images_root, '*.jpg'))
+        label_paths = glob(path.join(labels_root, '*.png'))
+        image_paths = sorted(image_paths, key=lambda x: (int(path.basename(x).split('_')[1]),
+                                                         int(path.basename(x).split('_')[2].split('.')[0])))
+        label_paths = sorted(label_paths, key=lambda x: (int(path.basename(x).split('_')[2]),
+                                                         int(path.basename(x).split('_')[3].split('.')[0])))
+        self._image_paths += image_paths
+        self._label_paths += label_paths
 
