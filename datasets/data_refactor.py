@@ -196,5 +196,3 @@ def copy_labels():
         if frame_idx % 50 != 0 and frame_idx % 25 == 0:
             filename = path.basename(p)
             copyfile(p, path.join(dest_path, filename))
-
-copy_labels()

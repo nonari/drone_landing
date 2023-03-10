@@ -141,10 +141,10 @@ class RuralscapesDataset(GenericDataset):
 
         image_paths = glob(images_root + '/*.jpg')
         label_paths = glob(labels_root + '/*.png')
-        self.image_paths = sorted(image_paths, key=lambda x: (int(path.basename(x).split('_')[1]),
-                                                              int(path.basename(x).split('_')[2].split('.')[0])))
-        self.label_paths = sorted(label_paths, key=lambda x: (int(path.basename(x).split('_')[2]),
-                                                              int(path.basename(x).split('_')[3].split('.')[0])))
+        self._image_paths = sorted(image_paths, key=lambda x: (int(path.basename(x).split('_')[1]),
+                                                               int(path.basename(x).split('_')[2].split('.')[0])))
+        self._label_paths = sorted(label_paths, key=lambda x: (int(path.basename(x).split('_')[2]),
+                                                               int(path.basename(x).split('_')[3].split('.')[0])))
 
         self.inv_idx = {}
 
@@ -245,4 +245,4 @@ class RuralscapesOrigSegprop(RuralscapesOrigSplit):
                                                          int(path.basename(x).split('_')[3].split('.')[0])))
         self._image_paths += image_paths
         self._label_paths += label_paths
-
+        self.index()
