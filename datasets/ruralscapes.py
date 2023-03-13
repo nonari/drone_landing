@@ -62,8 +62,8 @@ def label_to_tensor(label, keys):
     one_key = np.sum(keys * v, axis=1)
     one_ch = np.sum(label * v[None, None], axis=2)
     # Church to building
-    one_ch[one_ch == one_key[7]] = one_key[0]
-    one_ch[one_ch == one_key[6]] = one_key[2]
+    # one_ch[one_ch == one_key[7]] = one_key[0]
+    # one_ch[one_ch == one_key[6]] = one_key[2]
 
     sparse = np.equal(one_key[None, None], one_ch[..., None]).astype(np.float32)
     return torch.tensor(sparse).movedim(2, 0)
@@ -87,9 +87,9 @@ def label_transformation(color_keys, new_size, device):
     return f
 
 
-def randomHueSaturationValue(image, hue_shift_limit=(-0.5, 0.5),
-                             sat_shift_limit=(0, 1),
-                             val_shift_limit=(0, 1), u=0.5):
+def randomHueSaturationValue(image, hue_shift_limit=0.5,
+                             sat_shift_limit=1.,
+                             val_shift_limit=1., u=0.5):
     if np.random.random() < u:
         trans = torchvision.transforms.ColorJitter(
             brightness=val_shift_limit,
@@ -112,8 +112,8 @@ def randomShiftScaleRotate(image, mask, u=0.5):
 
 def randomHorizontalFlip(image, mask, u=0.5):
     if np.random.random() < u:
-        image = np.flip(image, 1)
-        mask = np.flip(mask, 1)
+        image = t_func.hflip(image)
+        mask = t_func.hflip(mask)
 
     return image, mask
 
@@ -121,9 +121,9 @@ def randomHorizontalFlip(image, mask, u=0.5):
 def augment_rural(img, label):
     img = randomHueSaturationValue(
         img,
-        hue_shift_limit=(0, .2),
-        sat_shift_limit=(0, .02),
-        val_shift_limit=(-0.06, .06)
+        hue_shift_limit=.2,
+        sat_shift_limit=.02,
+        val_shift_limit=.06,
     )
 
     img, label = randomShiftScaleRotate(img, label)
@@ -206,7 +206,7 @@ class RuralscapesDataset(GenericDataset):
         if self.config.train and self.config._training:
             tensor_im = self._prepare_im(self._image_paths[item])
             pil_lab = self._prepare_lab(self._label_paths[item])
-            aug_im, aug_lab = augment(tensor_im, pil_lab)
+            aug_im, aug_lab = augment_rural(tensor_im, pil_lab)
             t_aug_lab = label_to_tensor(np.asarray(aug_lab), ruralscapes_color_keys)
             return aug_im, t_aug_lab
         else:
