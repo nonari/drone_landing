@@ -4,7 +4,7 @@ from config import Config, TestConfig
 from datasets.ruralscapes import RuralscapesDataset, RuralscapesOrigSplit, RuralscapesOrigSegprop
 from training import train_net, train_net_with_validation
 import fire
-from torch.utils.data import SubsetRandomSampler
+from torch.utils.data import SubsetRandomSampler, SequentialSampler
 from datasets.tugraz import TUGrazDataset
 from datasets.tugraz_sort import TUGrazSortedDataset
 from datasets.aeroscapes import AeroscapesDataset
@@ -216,7 +216,7 @@ def folds_test(config):
     results = []
     for fold, test_idx in enumerate(folds):
         config.fold = fold
-        sampler = SubsetRandomSampler(test_idx)
+        sampler = SequentialSampler(test_idx)
         fold_info = torch.load(model_paths[fold], map_location=device)
         result = test_net(config, dataset, fold_info, sampler=sampler)
         if config.validation_stats:
