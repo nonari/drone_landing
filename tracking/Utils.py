@@ -45,6 +45,8 @@ class BlockingBuffer:
         self.finish = True
 
     def push(self, elem):
+        if self.finish:
+            exit(0)
         self.buff.append(elem)
         sleep(0.001)
 
@@ -69,7 +71,7 @@ def anim(buff):
     def close(event):
         if event.key == 'q':
             plt.close(event.canvas.figure)
-
+            buff.close()
     cid = plt.gcf().canvas.mpl_connect("key_press_event", close)
 
     plt.show()

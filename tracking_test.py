@@ -6,7 +6,8 @@ import asyncio
 import threading
 
 import matplotlib.pyplot as plt
-from skimage import morphology
+from skimage import morphology, color, feature, registration
+from skimage import draw as skdraw
 import cv2 as cv
 from PIL import Image
 import numpy as np
@@ -31,9 +32,12 @@ lk_params = dict(winSize=(15, 15),
 SIZE = 720, 1280
 
 
-def points_to_mask(points, size):
-    mask = np.zeros(size)
-    mask[points[:, 0, 0].astype(int), points[:, 0, 1].astype(int)] = 1
+def points_to_mask(points, size, mask=None):
+    if mask is None:
+        mask = np.zeros(size)
+    if len(points.shape) > 2:
+        points = np.squeeze(points, axis=1)
+    mask[points[:, 0].astype(int), points[:, 1].astype(int)] = 1
     mask = morphology.dilation(mask, selem=morphology.selem.disk(radius=4))
     return mask
 
@@ -44,23 +48,43 @@ def draw_mask(im, mask, color=(0, 255, 0)):
     return im
 
 
-def main():
-    old_frame, r = seq.__next__()
-    old_gray = cv.cvtColor(old_frame, cv.COLOR_BGR2GRAY)
-    p0 = cv.goodFeaturesToTrack(old_gray, mask=None, **feature_params)
-    mask = points_to_mask(p0[..., ::-1], SIZE)
-    mask = draw_mask(old_frame, mask)
-    plt.imshow(mask)
-    plt.show()
-    for im, r in seq:
-        buff.push(im)
+def find_corners(im, num_peaks=100):
+    response = feature.corner_shi_tomasi(im, sigma=1)
+    corner_points = feature.corner_peaks(response, min_distance=7, num_peaks=num_peaks)
+    return corner_points.astype(np.float32)
 
+
+def to_uint8(im):
+    return (im * 255).astype(np.uint8)
+
+
+def main():
+    seq.__next__()
+    old_frame, r = seq.__next__()
+    old_gray = color.rgb2gray(old_frame)
+    p0 = find_corners(old_gray)
+    # p0 = cv.goodFeaturesToTrack(old_gray.astype(np.float32), mask=None, **feature_params)
+    mask = points_to_mask(p0[..., ::], SIZE)
+    mask = draw_mask(old_frame, mask)
+    # plt.imshow(mask)
+    # plt.show()
+    p0 = p0[:, None, ::-1]
+    for curr_frame, curr_roi in seq:
+        curr_gray = color.rgb2gray(curr_frame)
+        p1, st, err = cv.calcOpticalFlowPyrLK(
+            to_uint8(old_gray),
+            to_uint8(curr_gray), p0, None, **lk_params)
+        mask = points_to_mask(p1[..., ::-1], SIZE)
+        mask = draw_mask(old_frame, mask)
+        buff.push(curr_frame)
+        p0 = p1
+        old_gray = curr_gray
     buff.close()
 
 
-main()
-# x = threading.Thread(target=main)
-# x.start()
-# anim(buff)
-# x.join()
+# main()
+x = threading.Thread(target=main)
+x.start()
+anim(buff)
+x.join()
 
