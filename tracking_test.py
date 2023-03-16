@@ -6,7 +6,7 @@ import asyncio
 import threading
 
 import matplotlib.pyplot as plt
-from skimage import morphology, color, feature, registration
+from skimage import morphology, color, feature, registration, measure
 from skimage import draw as skdraw
 import cv2 as cv
 from PIL import Image
@@ -61,6 +61,37 @@ def to_uint8(im):
     return (im * 255).astype(np.uint8)
 
 
+def roi_to_vertices(x, y, w, h):
+    x1 = x
+    y1 = y
+    x2 = x + w
+    y2 = y
+    x3 = x + w
+    y3 = y + h
+    x4 = x
+    y4 = y + h
+
+    vertices = np.array([[x1, y1], [x2, y2], [x3, y3], [x4, y4]])
+
+    return vertices
+
+
+def clean_points_inside(points, rois):
+    for roi in rois:
+        vertices = roi_to_vertices(*roi)
+        result = measure.points_in_poly(points, vertices)
+        points = points[result]
+
+    return points
+
+
+def clean_points_outside_frame(points, size):
+    frame_vertices = roi_to_vertices(0, 0, *size)
+    result = measure.points_in_poly(points, frame_vertices)
+    points = points[result]
+    return points
+
+
 def main():
     seq.__next__()
     old_frame, r = seq.__next__()
@@ -87,8 +118,8 @@ def main():
 
 
 # main()
-x = threading.Thread(target=main)
-x.start()
+thread = threading.Thread(target=main)
+thread.start()
 anim(buff)
-x.join()
+thread.join()
 
