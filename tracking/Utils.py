@@ -78,6 +78,7 @@ class BlockingBuffer:
                 return self.buff.pop(0)
             else:
                 sleep(0.01)
+        exit(0)
 
 
 def anim(buff):
