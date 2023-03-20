@@ -80,16 +80,17 @@ def clean_points_in_rois(points, rois):
     for roi in rois:
         vertices = roi_to_vertices(*roi)
         result = measure.points_in_poly(points[:, ::-1], vertices)
-        points = points[result]
+        points = points[np.logical_not(result)]
 
     return points
 
 
-def clean_points_outside_frame(points, size):
+def clean_points_outside_frame(target, points2, size):
     frame_vertices = roi_to_vertices(0, 0, *size)
-    result = measure.points_in_poly(points[:, ::-1], frame_vertices)
-    points = points[result]
-    return points
+    result = measure.points_in_poly(target[:, ::-1], frame_vertices)
+    target = target[result]
+    points2 = points2[result]
+    return target, points2
 
 
 def cv_optical_flow_lk(fst_frame, snd_frame, points):
@@ -107,10 +108,47 @@ def cv_find_homography(p_ori, p_dst):
     return h_mat
 
 
-def cv_warp(im, h_mat):
-    dsize = im.shape[:2][::-1]
-    warped_im = cv.warpPerspective(im, h_mat, dsize)
+def pad_to(im, size):
+    sh, sw = size
+    oh, ow = im.shape[:2]
+    dh = max(sh - oh, 0)
+    dw = max(sw - ow, 0)
+    padded_im = np.pad(im, ((0, dh), (0, dw), (0, 0)), constant_values=0)
+    return padded_im
+
+
+def pad_imgs(im1, im2):
+    size1 = im1.shape[:2]
+    size2 = im2.shape[:2]
+    if size1[0] > size2[0]:
+        im2 = pad_to(im2, (size1[0], 0))
+    elif size1[0] < size2[0]:
+        im1 = pad_to(im1, (size2[0], 0))
+
+    if size1[1] > size2[1]:
+        im2 = pad_to(im2, (0, size1[1]))
+    elif size1[1] < size2[1]:
+        im1 = pad_to(im1, (0, size2[1]))
+
+    return im1, im2
+
+
+def cv_merge(im1, im2):
+    im1, im2 = pad_imgs(im1, im2)
+    merged = cv.addWeighted(im1, 0.5, im2, 0.5, 0)
+    return merged
+
+
+def cv_warp(ori_im, dst_im, h_mat):
+    width = ori_im.shape[1] + dst_im.shape[1]
+    heigh = ori_im.shape[0] + dst_im.shape[0]
+    warped_im = cv.warpPerspective(ori_im, h_mat, (width, heigh))
+    # warped_im[:dst_im.shape[0], :dst_im.shape[1]] = dst_im
+    warped_im = cv_merge(warped_im, dst_im)
     return warped_im
+
+
+plt.figure(dpi=1200)
 
 
 def main():
@@ -118,29 +156,39 @@ def main():
     old_frame, r = seq.__next__()
     old_gray = color.rgb2gray(old_frame)
     p0 = find_corners(old_gray)
-    # p0 = cv.goodFeaturesToTrack(old_gray.astype(np.float32), mask=None, **feature_params)
     mask = points_to_mask(p0, SIZE[::-1])
     drawn_im = draw_mask(old_frame, mask)
     buff.push(drawn_im)
     # plt.imshow(mask)
     # plt.show()
-    # clean_points_in_rois(p0, )
-    for curr_frame, curr_roi in seq[2:50]:
+    p0 = clean_points_in_rois(p0, [r])
+    for curr_frame, curr_roi in seq[5:6]:
         curr_gray = color.rgb2gray(curr_frame)
         p1 = cv_optical_flow_lk(old_gray, curr_gray, p0)
-        p1 = clean_points_outside_frame(p1, SIZE)
+        key_p0 = [cv.KeyPoint(i[1], i[0], 1) for i in p0]
+        key_p1 = [cv.KeyPoint(i[1], i[0], 1) for i in p1]
+        matches = [cv.DMatch(i, i, 1) for i in range(len(key_p0))]
+        matched = cv.drawMatches(old_frame, key_p0, curr_frame, key_p1,
+                                 matches,
+                                 None, flags=cv.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+        p0, p1 = clean_points_outside_frame(p0, p1, SIZE)
         h_mat = cv_find_homography(p0, p1)
-        warped_old = cv_warp(old_frame, h_mat)
+        warped_old = cv_warp(old_frame, curr_frame, h_mat)
         mask = points_to_mask(p1, SIZE[::-1], mask)
         drawn_im = draw_mask(curr_frame, mask)
+        plt.imshow(warped_old)
+        plt.show()
+        plt.imshow(matched)
+        plt.show()
         buff.push(drawn_im)
         p0 = p1
         old_gray = curr_gray
+
     buff.close()
 
 
-# main()
-thread = threading.Thread(target=main)
-thread.start()
-anim(buff)
-thread.join()
+main()
+# thread = threading.Thread(target=main)
+# thread.start()
+# anim(buff)
+# thread.join()

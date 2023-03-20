@@ -51,10 +51,10 @@ class FramesSequenceUAV123(collections.abc.Iterable):
         return tup
 
     def __next__(self):
-        tup = self.get_idx(self._curr)
-        self._curr += 1
         if self._curr >= len(self._frames_paths):
             raise StopIteration
+        tup = self.get_idx(self._curr)
+        self._curr += 1
         return tup
 
 
