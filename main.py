@@ -1,6 +1,7 @@
 from os import makedirs
 from shutil import rmtree
-from config import Config, TestConfig
+from config import TestConfig, TrainConfig
+from datasets.dataset import DummyDataset
 from datasets.ruralscapes import RuralscapesDataset, RuralscapesOrigSplit, RuralscapesOrigSegprop
 from training import train_net, train_net_with_validation
 import fire
@@ -37,6 +38,8 @@ def select_dataset(config):
         dataset = RuralscapesOrigSplit(config)
     elif dataset_name == 'ruralscapes_segprop':
         dataset = RuralscapesOrigSegprop(config)
+    elif dataset_name == 'dummy':
+        dataset = DummyDataset(config)
     else:
         raise Exception(f'Dataset name {dataset_name}, not found.')
 
@@ -132,7 +135,7 @@ def folds_strategy(config):
 
 def train(**kwargs):
     name = kwargs['name']
-    opt = Config(name=name)
+    opt = TrainConfig(name=name)
 
     # overwrite options from commandline
     for k_, v_ in kwargs.items():

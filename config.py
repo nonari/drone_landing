@@ -26,12 +26,19 @@ class Config(object):
 
         self.num_threads = 2
 
-        # transforms
-        self.augment = True
+        # do not change
+        self.fold = 0
 
         # network
         self.model_config = 'unet_resnet34'
         self.gpu = True
+
+
+class TrainConfig(Config):
+    def __init__(self, name):
+        super().__init__(name)
+        # transforms
+        self.augment = True
 
         # checkpoint frequency
         self.save_every = 50  # epochs
@@ -41,9 +48,6 @@ class Config(object):
 
         # wipe execution dir
         self.override = False
-
-        # do not change
-        self.fold = 0
 
         # this is override on resume
         self.idx_seed = 42
@@ -61,7 +65,6 @@ class TestConfig(Config):
         super().__init__(name)
         self._training = False
         self.model = 0
-        self.test = False
         self.generate_images = True
         self.training_charts = True
         self.validation_stats = True

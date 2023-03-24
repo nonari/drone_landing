@@ -1,9 +1,12 @@
 from abc import ABC
+import importlib
 import numpy as np
 from PIL import Image
 from torch.utils.data import Dataset
 from torchvision.transforms import transforms
 import torch
+
+from config import TrainConfig
 
 imagenet_norm = {'mean': [0.485, 0.456, 0.406],
                  'std': [0.229, 0.224, 0.225]}
@@ -60,3 +63,41 @@ class GenericDataset(Dataset, ABC):
 
     def get_folds(self):
         raise NotImplementedError
+
+
+class DummyDataset(GenericDataset):
+    def __init__(self, config):
+        self.config = config
+        self.color_key = np.array([[0, 0, 0], [255, 255, 255]])
+        self.batch_size = config.batch_size
+        self.input_size = importlib.import_module(f'net_configurations.{config.model_config}').CONFIG['input_size']
+
+    def classes(self):
+        return 2
+
+    def classnames(self):
+        return np.array(['class1', 'class2'])
+
+    def colors(self):
+        return self.color_key
+
+    def pred_to_color_mask(self, true, pred):
+        return self.color_key[true], self.color_key[pred]
+
+    def get_folds(self):
+        folds = []
+        if isinstance(self.config, TrainConfig):
+            folds.append(([0, 1], [2, 3]))
+        else:
+            folds.append([2, 3])
+        return folds
+
+    def __getitem__(self, index):
+        image = torch.rand((3, self.input_size[0], self.input_size[1]))
+        sparse_label = torch.zeros((self.classes(), self.input_size[0], self.input_size[1]))
+        dense_label = np.random.randint(0, self.classes(), (self.input_size[0], self.input_size[1]))
+        idxy = np.arange(self.input_size[0])[:, None].repeat(self.input_size[1], axis=1)
+        idxx = np.arange(self.input_size[1])[None].repeat(self.input_size[0], axis=0)
+        sparse_label[dense_label, idxy, idxx] = 1
+
+        return image, sparse_label

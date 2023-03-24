@@ -6,6 +6,7 @@ import torchvision.transforms
 from PIL import Image
 import importlib
 import torchvision.transforms.functional as t_func
+from config import TrainConfig
 
 from datasets.dataset import prepare_image, adapt_label, adapt_image, label_to_tensor, GenericDataset
 
@@ -134,7 +135,7 @@ class RuralscapesDataset(GenericDataset):
 
     def get_folds(self):
         folds = []
-        if self.config.train:
+        if isinstance(self.config, TrainConfig):
             fold0_train = get_all(self._image_paths, train_folds[0] + train_folds[1])
             fold0_val = get_all(self._image_paths, train_folds[2])
             fold1_train = get_all(self._image_paths, train_folds[1] + train_folds[2])
@@ -169,18 +170,13 @@ class RuralscapesDataset(GenericDataset):
         return self._image_paths.__len__()
 
     def __getitem__(self, item):
-        if self.config.train and self.config._training:
+        if isinstance(self.config.train, TrainConfig):
             tensor_im = self._prepare_im(self._image_paths[item])
             pil_lab = self._prepare_lab(self._label_paths[item])
-            if self.config.augment:
+            if self.config.augment and self.config._training:
                 tensor_im, pil_lab = augment_rural(tensor_im, pil_lab)
             tensor_lab = label_to_tensor(np.asarray(pil_lab), color_keys)
             return tensor_im, tensor_lab
-        else:
-            tensor_im = self._prepare_im(self._image_paths[item])
-            pil_lab = self._prepare_lab(self._label_paths[item])
-            t_lab = label_to_tensor(np.asarray(pil_lab), color_keys)
-            return tensor_im, t_lab
 
 
 class RuralscapesOrigSplit(RuralscapesDataset):
@@ -189,7 +185,7 @@ class RuralscapesOrigSplit(RuralscapesDataset):
 
     def get_folds(self):
         folds = []
-        if self.config.train:
+        if isinstance(self.config, TrainConfig):
             fold0_train = get_all(self._image_paths, split_train_ids)
             fold0_val = get_all(self._image_paths, split_test_ids)
             folds.append((self.p_to_i(fold0_train), self.p_to_i(fold0_val)))

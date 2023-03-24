@@ -36,6 +36,28 @@ tugraz_classes = [
     "conflicting"
 ]
 
+vid_len = {
+    43: 7041,
+    44: 758,
+    45: 817,
+    46: 3306,
+    47: 1789,
+    50: 3451,
+    51: 556,
+    53: 953,
+    56: 2687,
+    61: 2143,
+    85: 1192,
+    86: 3839,
+    88: 1212,
+    89: 1778,
+    93: 856,
+    97: 8261,
+    101: 702,
+    114: 2695,
+    116: 2829,
+    118: 3975
+}
 
 tugraz_new_labels = {
     6: [13, 14, 22],
@@ -137,9 +159,9 @@ def extract_ruralscapes():
     for v in videos:
         name = path.basename(v).split('.')[0]
         idv = name[-4:]
-        if idv in split_train_ids:
+        if idv in ['0118']:
             print(idv)
-            prefix = path.join(path.dirname(root), 'frames2', name)
+            prefix = path.join(path.dirname(root), 'frames3', name)
             extract_frames(v, prefix)
 
 
@@ -152,15 +174,17 @@ def extract_frames(video_file, prefix):
     while True:
         is_read, frame = cap.read()
         if not is_read:
-            resized = cv2.resize(last_frame, (1280, 720), interpolation=cv2.INTER_CUBIC)
-            cv2.imwrite(prefix + f"_{(count-1):06}.jpg", resized)
+            # resized = cv2.resize(last_frame, (1280, 720), interpolation=cv2.INTER_CUBIC)
+            # cv2.imwrite(prefix + f"_{(count-1):06}.jpg", resized)
             cap.release()
             break
-        elif count % 50 != 0 and count % 25 == 0:
+        elif count % 50 != 0 and count % 10 == 0:
             resized = cv2.resize(frame, (1280, 720), interpolation=cv2.INTER_CUBIC)
             cv2.imwrite(prefix + f"_{count:06}.jpg", resized)
         last_frame = frame
         count += 1
+
+extract_ruralscapes()
 
 def group():
     frame_paths = glob('/home/nonari/Documentos/ruralscapes/frames/*')
