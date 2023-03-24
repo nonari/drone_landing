@@ -3,22 +3,7 @@ from glob import glob
 from PIL import Image
 import numpy as np
 from matplotlib import pyplot as plt
-
-
-ruralscapes_color_keys = np.asarray([
-    [255, 255, 0],
-    [0, 255, 0],
-    [0, 127, 0],
-    [0, 255, 255],
-    [127, 127, 0],
-    [255, 255, 255],
-    [127, 127, 63],
-    [255, 0, 255],
-    [127, 127, 127],
-    [255, 0, 0],
-    [255, 127, 0],
-    [0, 0, 255],
-])
+from datasets.ruralscapes import color_keys as ruralscapes_color_keys
 
 
 def main():

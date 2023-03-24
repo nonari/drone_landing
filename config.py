@@ -27,8 +27,7 @@ class Config(object):
         self.num_threads = 2
 
         # transforms
-        self.resize = True
-        self.flip = True
+        self.augment = True
 
         # network
         self.model_config = 'unet_resnet34'

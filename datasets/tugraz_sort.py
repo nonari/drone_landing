@@ -6,7 +6,7 @@ from PIL import Image
 import importlib
 
 from datasets.data_refactor import tugraz_new_labels
-from datasets.dataset import transform_image, GenericDataset
+from datasets.dataset import adapt_image, GenericDataset
 
 
 tugraz_color_keys = np.asarray([
@@ -135,7 +135,7 @@ class TUGrazSortedDataset(GenericDataset):
             self.inv_idx[k] = idx
 
         net_config = importlib.import_module(f'net_configurations.{config.model_config}').CONFIG
-        t_tugraz = transform_image(net_config['input_size'])
+        t_tugraz = adapt_image(net_config['input_size'])
 
         self._prepare_im = prepare_image(t_tugraz)
         device = torch.device('cuda' if torch.cuda.is_available() and config.gpu else 'cpu')

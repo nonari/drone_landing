@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 from os import path
 from glob import glob
 
@@ -8,9 +7,9 @@ from PIL import Image
 import importlib
 import torchvision.transforms.functional as t_func
 
-from datasets.dataset import transform_image, GenericDataset, augment
+from datasets.dataset import prepare_image, adapt_label, adapt_image, label_to_tensor, GenericDataset
 
-ruralscapes_color_keys = np.asarray([
+color_keys = np.asarray([
     [255, 255, 0],
     [0, 255, 0],
     [0, 127, 0],
@@ -57,39 +56,9 @@ def get_all(paths, ids):
     return all_frames
 
 
-def label_to_tensor(label, keys):
-    v = np.asarray([256 * 256, 256, 1])
-    one_key = np.sum(keys * v, axis=1)
-    one_ch = np.sum(label * v[None, None], axis=2)
-    # Church to building
-    # one_ch[one_ch == one_key[7]] = one_key[0]
-    # one_ch[one_ch == one_key[6]] = one_key[2]
-
-    sparse = np.equal(one_key[None, None], one_ch[..., None]).astype(np.float32)
-    return torch.tensor(sparse).movedim(2, 0)
-
-
-def prepare_image(transformation):
-    def f(im_path):
-        im_orig = Image.open(im_path)
-        im_tensor = transformation(im_orig)
-        im_orig.close()
-        return im_tensor
-
-    return f
-
-
-def label_transformation(color_keys, new_size, device):
-    def f(label):
-        lab_res = label.resize(new_size[::-1], Image.NEAREST)
-        return lab_res
-
-    return f
-
-
-def randomHueSaturationValue(image, hue_shift_limit=0.5,
-                             sat_shift_limit=1.,
-                             val_shift_limit=1., u=0.5):
+def jitter_hsv(image, hue_shift_limit=0.5,
+               sat_shift_limit=1.,
+               val_shift_limit=1., u=0.5):
     if np.random.random() < u:
         trans = torchvision.transforms.ColorJitter(
             brightness=val_shift_limit,
@@ -100,7 +69,7 @@ def randomHueSaturationValue(image, hue_shift_limit=0.5,
     return image
 
 
-def randomShiftScaleRotate(image, mask, u=0.5):
+def rand_shift_scale_rotate(image, mask, u=0.5):
     if np.random.random() < u:
         size = image.shape[-2:]
         i, j, h, w = torchvision.transforms.RandomResizedCrop.get_params(image, [0.95, 0.95], [1.0, 1.0])
@@ -110,7 +79,7 @@ def randomShiftScaleRotate(image, mask, u=0.5):
     return image, mask
 
 
-def randomHorizontalFlip(image, mask, u=0.5):
+def random_hflip(image, mask, u=0.5):
     if np.random.random() < u:
         image = t_func.hflip(image)
         mask = t_func.hflip(mask)
@@ -119,16 +88,16 @@ def randomHorizontalFlip(image, mask, u=0.5):
 
 
 def augment_rural(img, label):
-    img = randomHueSaturationValue(
+    img = jitter_hsv(
         img,
         hue_shift_limit=.2,
         sat_shift_limit=.02,
         val_shift_limit=.06,
     )
 
-    img, label = randomShiftScaleRotate(img, label)
+    img, label = rand_shift_scale_rotate(img, label)
 
-    img, label = randomHorizontalFlip(img, label)
+    img, label = random_hflip(img, label)
 
     return img, label
 
@@ -147,18 +116,16 @@ class RuralscapesDataset(GenericDataset):
                                                                int(path.basename(x).split('_')[3].split('.')[0])))
 
         self.inv_idx = {}
-
         self.index()
 
         net_config = importlib.import_module(f'net_configurations.{config.model_config}').CONFIG
-        t_rural = transform_image(net_config['input_size'])
+        t_rural = adapt_image(net_config['input_size'])
 
         self._prepare_im = prepare_image(t_rural)
-        device = torch.device('cuda' if torch.cuda.is_available() and config.gpu else 'cpu')
-        self._prepare_lab = prepare_image(label_transformation(
-            ruralscapes_color_keys, net_config['input_size'], device))
+        self._prepare_lab = prepare_image(adapt_label(net_config['input_size']))
 
     def index(self):
+        self.inv_idx.clear()
         for idx, k in enumerate(self._image_paths):
             self.inv_idx[k] = idx
 
@@ -191,28 +158,28 @@ class RuralscapesDataset(GenericDataset):
         return ruralscapes_classnames
 
     def colors(self):
-        return ruralscapes_color_keys
+        return color_keys
 
     def pred_to_color_mask(self, true, pred):
-        pred_mask = ruralscapes_color_keys[pred]
-        true_mask = ruralscapes_color_keys[true]
+        pred_mask = color_keys[pred]
+        true_mask = color_keys[true]
         return true_mask, pred_mask
 
     def __len__(self):
         return self._image_paths.__len__()
 
     def __getitem__(self, item):
-        # TODO move augment to Dataloader
         if self.config.train and self.config._training:
             tensor_im = self._prepare_im(self._image_paths[item])
             pil_lab = self._prepare_lab(self._label_paths[item])
-            aug_im, aug_lab = augment_rural(tensor_im, pil_lab)
-            t_aug_lab = label_to_tensor(np.asarray(aug_lab), ruralscapes_color_keys)
-            return aug_im, t_aug_lab
+            if self.config.augment:
+                tensor_im, pil_lab = augment_rural(tensor_im, pil_lab)
+            tensor_lab = label_to_tensor(np.asarray(pil_lab), color_keys)
+            return tensor_im, tensor_lab
         else:
             tensor_im = self._prepare_im(self._image_paths[item])
             pil_lab = self._prepare_lab(self._label_paths[item])
-            t_lab = label_to_tensor(np.asarray(pil_lab), ruralscapes_color_keys)
+            t_lab = label_to_tensor(np.asarray(pil_lab), color_keys)
             return tensor_im, t_lab
 
 

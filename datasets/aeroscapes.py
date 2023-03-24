@@ -6,7 +6,7 @@ from glob import glob
 from PIL import Image
 import importlib
 
-from datasets.dataset import transform_image, GenericDataset
+from datasets.dataset import adapt_image, GenericDataset
 
 aeroscapes_color = np.asarray([
     [0, 0, 0],
@@ -84,7 +84,7 @@ class AeroscapesDataset(GenericDataset):
         self._label_paths = np.asarray(label_paths)
 
         net_config = importlib.import_module(f'net_configurations.{options.model_config}').CONFIG
-        t_tugraz = transform_image(net_config['input_size'])
+        t_tugraz = adapt_image(net_config['input_size'])
 
         self._prepare_im = prepare_image(t_tugraz)
         self._prepare_lab = prepare_image(label_transformation(net_config['input_size']))
@@ -132,5 +132,3 @@ class AeroscapesDataset(GenericDataset):
 
     def __getitem__(self, item):
         return self._prepare_im(self._image_paths[item]),  self._prepare_lab(self._label_paths[item])
-
-

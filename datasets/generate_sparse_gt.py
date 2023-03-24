@@ -2,22 +2,8 @@ import numpy as np
 from os import path, makedirs
 from glob import glob
 from PIL import Image
+from datasets.ruralscapes import color_keys as ruralscapes_color_keys
 
-
-ruralscapes_color_keys = np.asarray([
-    [255, 255, 0],
-    [0, 255, 0],
-    [0, 127, 0],
-    [0, 255, 255],
-    [127, 127, 0],
-    [255, 255, 255],
-    [127, 127, 63],
-    [255, 0, 255],
-    [127, 127, 127],
-    [255, 0, 0],
-    [255, 127, 0],
-    [0, 0, 255],
-])
 
 ROOT = '/home/nonari/windows/ruralscapes/labels/'
 

@@ -7,7 +7,7 @@ import importlib
 
 from sklearn.model_selection import KFold
 
-from datasets.dataset import transform_image, GenericDataset
+from datasets.dataset import adapt_image, GenericDataset
 
 tugraz_color_keys = np.asarray([
     [0, 0, 0],
@@ -120,7 +120,7 @@ class TUGrazDataset(GenericDataset):
         self._label_paths = np.asarray(label_paths)
 
         net_config = importlib.import_module(f'net_configurations.{options.model_config}').CONFIG
-        t_tugraz = transform_image(net_config['input_size'])
+        t_tugraz = adapt_image(net_config['input_size'])
 
         self._prepare_im = prepare_image(t_tugraz)
         device = torch.device('cuda' if torch.cuda.is_available() and options.gpu else 'cpu')
