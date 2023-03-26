@@ -37,6 +37,8 @@ class Config(object):
 class TrainConfig(Config):
     def __init__(self, name):
         super().__init__(name)
+        self._training = False
+
         # transforms
         self.augment = True
 

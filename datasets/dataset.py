@@ -71,6 +71,7 @@ class DummyDataset(GenericDataset):
         self.color_key = np.array([[0, 0, 0], [255, 255, 255]])
         self.batch_size = config.batch_size
         self.input_size = importlib.import_module(f'net_configurations.{config.model_config}').CONFIG['input_size']
+        #self.input_size = 64, 64
 
     def classes(self):
         return 2

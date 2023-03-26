@@ -184,7 +184,6 @@ def extract_frames(video_file, prefix):
         last_frame = frame
         count += 1
 
-extract_ruralscapes()
 
 def group():
     frame_paths = glob('/home/nonari/Documentos/ruralscapes/frames/*')

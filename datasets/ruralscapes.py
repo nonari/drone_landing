@@ -170,13 +170,12 @@ class RuralscapesDataset(GenericDataset):
         return self._image_paths.__len__()
 
     def __getitem__(self, item):
-        if isinstance(self.config.train, TrainConfig):
-            tensor_im = self._prepare_im(self._image_paths[item])
-            pil_lab = self._prepare_lab(self._label_paths[item])
-            if self.config.augment and self.config._training:
-                tensor_im, pil_lab = augment_rural(tensor_im, pil_lab)
-            tensor_lab = label_to_tensor(np.asarray(pil_lab), color_keys)
-            return tensor_im, tensor_lab
+        tensor_im = self._prepare_im(self._image_paths[item])
+        pil_lab = self._prepare_lab(self._label_paths[item])
+        if isinstance(self.config, TrainConfig) and self.config._training:
+            tensor_im, pil_lab = augment_rural(tensor_im, pil_lab)
+        tensor_lab = label_to_tensor(np.asarray(pil_lab), color_keys)
+        return tensor_im, tensor_lab
 
 
 class RuralscapesOrigSplit(RuralscapesDataset):
