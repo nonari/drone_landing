@@ -90,7 +90,7 @@ def add_data(data, config, epoch, acc=None, loss=None, val=False):
 
 def train_net(config, dataset, train_sampler=None, checkpoint=None):
     device = torch.device('cuda' if cuda.is_available() and config.gpu else 'cpu')
-    net_config = importlib.import_module(f'net_configurations.{config.model_config}').CONFIG
+    net_config = config.net_config
     net = configure_net(net_config, dataset.classes())
 
     best_loss = 1000
@@ -160,7 +160,7 @@ def remove_past_checkpoints(config, epoch):
 
 def train_net_with_validation(config, dataset, train_sampler=None, val_sampler=None, checkpoint=None):
     device = torch.device('cuda' if config.gpu and cuda.is_available() else 'cpu')
-    net_config = importlib.import_module(f'net_configurations.{config.model_config}').CONFIG
+    net_config = config.net_config
     net = configure_net(net_config, dataset.classes())
 
     curr_epoch = 0

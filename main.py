@@ -19,7 +19,8 @@ from testing import test_net
 import numpy as np
 import tabulator
 import ploting
-
+from utils import init_config
+import importlib
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
@@ -134,13 +135,7 @@ def folds_strategy(config):
 
 
 def train(**kwargs):
-    name = kwargs['name']
-    opt = TrainConfig(name=name)
-
-    # overwrite options from commandline
-    for k_, v_ in kwargs.items():
-        setattr(opt, k_, v_)
-
+    opt = init_config(kwargs, TrainConfig)
     opt.train = True
 
     # create directories
@@ -167,12 +162,7 @@ def train(**kwargs):
 
 
 def test(**kwargs):
-    name = kwargs['name']
-    opt = TestConfig(name=name)
-
-    # overwrite options from commandline
-    for k_, v_ in kwargs.items():
-        setattr(opt, k_, v_)
+    opt = init_config(kwargs, TestConfig)
 
     opt.train = False
     used_dataset = torch.load(path.join(opt.train_path, 'execution_info'))['dataset_name']

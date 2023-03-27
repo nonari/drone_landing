@@ -119,7 +119,7 @@ class RuralscapesDataset(GenericDataset):
         self.inv_idx = {}
         self.index()
 
-        net_config = importlib.import_module(f'net_configurations.{config.model_config}').CONFIG
+        net_config = config.net_config
         t_rural = adapt_image(net_config['input_size'])
 
         self._prepare_im = prepare_image(t_rural)

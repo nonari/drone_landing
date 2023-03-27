@@ -10,8 +10,8 @@ from config import TrainConfig
 
 imagenet_norm = {'mean': [0.485, 0.456, 0.406],
                  'std': [0.229, 0.224, 0.225]}
-imagenet_denorm = {'mean': [-0.485/0.229, -0.456/0.224, -0.406/0.225],
-                   'std': [1/0.229, 1/0.224, 1/0.225]}
+imagenet_denorm = {'mean': [-0.485 / 0.229, -0.456 / 0.224, -0.406 / 0.225],
+                   'std': [1 / 0.229, 1 / 0.224, 1 / 0.225]}
 
 
 def label_to_tensor(label, keys):
@@ -70,8 +70,8 @@ class DummyDataset(GenericDataset):
         self.config = config
         self.color_key = np.array([[0, 0, 0], [255, 255, 255]])
         self.batch_size = config.batch_size
-        self.input_size = importlib.import_module(f'net_configurations.{config.model_config}').CONFIG['input_size']
-        #self.input_size = 64, 64
+        # self.input_size = importlib.import_module(f'net_configurations.{config.model_config}').CONFIG['input_size']
+        self.input_size = 64, 64
 
     def classes(self):
         return 2
