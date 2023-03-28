@@ -42,4 +42,4 @@ class DiceLoss(nn.Module):
         super().__init__()
 
     def forward(self, y_true, y_pred):
-        return dice_coeff_multiclass(y_true, y_pred)
+        return 1 - dice_coeff_multiclass(y_true, y_pred)
