@@ -18,6 +18,11 @@ def label_to_tensor(label, keys):
     v = np.asarray([256 * 256, 256, 1])
     one_key = np.sum(keys * v, axis=1)
     one_ch = np.sum(label * v[None, None], axis=2)
+
+    # Church to building
+    one_ch[one_ch == 7] = 0
+    one_ch[one_ch == 6] = 2
+
     sparse = np.equal(one_key[None, None], one_ch[..., None]).astype(np.float32)
     return torch.tensor(sparse).movedim(2, 0)
 

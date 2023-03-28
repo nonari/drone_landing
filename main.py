@@ -52,6 +52,7 @@ def save_execution_data(config):
             'batch_size': config.batch_size,
             'folds': config.folds,
             'model_config': config.model_config,
+            'net_config': config.net_config,
             'idx_seed': config.idx_seed,
             'dataset_name': config.dataset_name,
             'validation_epochs': config.validation_epochs}

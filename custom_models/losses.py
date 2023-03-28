@@ -18,7 +18,7 @@ def dice_loss(y_true, y_pred):
 
 
 def dice_coeff_multiclass(y_true, y_pred):
-    smooth = 1.
+    smooth = 0.1
     intersection = torch.sum(y_true * y_pred, dim=(0, 2, 3))
     union = torch.sum(y_true + y_pred, dim=(0, 2, 3))
 

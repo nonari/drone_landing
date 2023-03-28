@@ -1,6 +1,10 @@
+import torch
 from torch.utils.data import Sampler
 import importlib
 import copy
+from config import TestConfig
+from os import path
+
 
 
 class SeqSampler(Sampler[int]):
@@ -28,24 +32,43 @@ def init_config(kwargs, clazz):
     opt = clazz(name=name)
 
     model_config = kwargs['model_config'] if 'model_config' in kwargs else opt.model_config
-
-    net_config = generate_net_config(model_config, kwargs)
+    net_conf_args = filter_net_config(kwargs)
 
     # overwrite options from commandline
     for k_, v_ in kwargs.items():
         setattr(opt, k_, v_)
 
+    base_net_config = None
+    if isinstance(opt, TestConfig):
+        exec_info_path = path.join(opt.train_path, 'execution_info')
+        if path.exists(exec_info_path):
+            info = torch.load(exec_info_path)
+            if 'net_config' in info:
+                base_net_config = info['net_config']
+            else:
+                print('WARNING: Old file without net config')
+
+    net_config = generate_net_config(model_config, net_conf_args, base_net_config)
     setattr(opt, 'net_config', net_config)
 
     return opt
 
 
-def generate_net_config(model_config, input_args):
-    net_config = importlib.import_module(f'net_configurations.{model_config}').CONFIG
-    for key in copy.copy(input_args):
+def filter_net_config(input_args):
+    items = []
+    for key, value in copy.copy(input_args).items():
         if key.startswith('model_config.'):
-            parts = key[13:].split('.')
-            set_val(net_config, parts, input_args[key])
+            items.append((key, value))
             del input_args[key]
+
+    return items
+
+
+def generate_net_config(model_config, input_args, net_config=None):
+    if net_config is None:
+        net_config = importlib.import_module(f'net_configurations.{model_config}').CONFIG
+    for key, value in input_args:
+        parts = key[13:].split('.')
+        set_val(net_config, parts, value)
 
     return net_config
