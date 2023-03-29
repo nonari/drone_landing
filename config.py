@@ -33,6 +33,16 @@ class Config(object):
         self.model_config = 'unet_resnet34'
         self.gpu = True
 
+        # this is override on resume
+        self.idx_seed = 42
+        self.batch_size = 1
+        self.folds = 5
+        self.max_epochs = 100
+        # for validation
+        self.validation_epochs = 10
+        self.stop_after_miss = 2
+        self.delta = 0.01
+
 
 class TrainConfig(Config):
     def __init__(self, name):
@@ -50,16 +60,6 @@ class TrainConfig(Config):
 
         # wipe execution dir
         self.override = False
-
-        # this is override on resume
-        self.idx_seed = 42
-        self.batch_size = 1
-        self.folds = 5
-        self.max_epochs = 100
-        # for validation
-        self.validation_epochs = 10
-        self.stop_after_miss = 2
-        self.delta = 0.01
 
 
 class TestConfig(Config):
