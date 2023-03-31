@@ -12,11 +12,6 @@ def dice_coeff(y_true, y_pred):
     return score
 
 
-def dice_loss(y_true, y_pred):
-    loss = 1 - dice_coeff(y_true, y_pred)
-    return loss
-
-
 def dice_coeff_multiclass(y_true, y_pred):
     smooth = 0.1
     intersection = torch.sum(y_true * y_pred, dim=(0, 2, 3))
@@ -30,11 +25,32 @@ class BCEDiceLoss(nn.Module):
     def __init__(self):
         super().__init__()
         self.bce_loss = nn.BCELoss()
+        self.dice_loss = DiceLoss()
 
     def forward(self, y_true, y_pred):
-        loss = self.bce_loss(y_true, y_pred) + dice_loss(y_true, y_pred)
+        loss = self.bce_loss(y_true, y_pred) + self.dice_loss(y_true, y_pred)
 
         return loss
+
+
+class BCEDiceAvgLoss(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.bce_loss = nn.BCELoss()
+        self.dice_loss = DiceAvgLoss()
+
+    def forward(self, y_true, y_pred):
+        loss = self.bce_loss(y_true, y_pred) + self.dice_loss(y_true, y_pred)
+
+        return loss
+
+
+class DiceAvgLoss(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, y_true, y_pred):
+        return 1 - dice_coeff_multiclass(y_true, y_pred)
 
 
 class DiceLoss(nn.Module):
@@ -42,4 +58,27 @@ class DiceLoss(nn.Module):
         super().__init__()
 
     def forward(self, y_true, y_pred):
-        return 1 - dice_coeff_multiclass(y_true, y_pred)
+        return 1 - dice_coeff(y_true, y_pred)
+
+
+class CEWeightDiceLoss(nn.Module):
+    def __init__(self, w):
+        super().__init__()
+        self.bce_loss = nn.CrossEntropyLoss(weight=w)
+        self.dice_loss = DiceAvgLoss()
+
+    def forward(self, y_true, y_pred):
+        loss = self.bce_loss(y_true, y_pred) + self.dice_loss(y_true, y_pred)
+
+        return loss
+
+
+class CELoss(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.ce_loss = nn.CrossEntropyLoss()
+
+    def forward(self, y_true, y_pred):
+        loss = self.ce_loss(y_true, y_pred)
+
+        return loss

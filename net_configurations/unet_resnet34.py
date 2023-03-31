@@ -1,8 +1,12 @@
 CONFIG = {
-    'net': 'unet',
+    'net': {
+        'name': 'unet',
+        'params': {
+            'encoder_name': 'resnet34',
+            'encoder_weights': 'imagenet'
+        }
+    },
     'input_size': (704, 1024),
-    'encoder': 'resnet34',
-    'pretrained': True,
     'loss': 'nn.BCEWithLogitsLoss',
     'optimizer': {
         'name': 'optim.RMSprop',

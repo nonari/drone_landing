@@ -1,5 +1,11 @@
 CONFIG = {
-    'net': 'pspnet',
+    'net': {
+        'name': 'pspnet',
+        'params': {
+            'encoder_name': 'resnet34',
+            'encoder_weights': 'imagenet'
+        }
+    },
     'input_size': (704, 1024),
     'encoder': 'resnet34',
     'pretrained': True,

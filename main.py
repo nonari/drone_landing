@@ -1,15 +1,11 @@
 from os import makedirs
 from shutil import rmtree
 from config import TestConfig, TrainConfig
-from datasets.dataset import DummyDataset
-from datasets.ruralscapes import RuralscapesDataset, RuralscapesOrigSplit, RuralscapesOrigSegprop
+import datasets
 from training import train_net, train_net_with_validation
 import fire
 from torch.utils.data import SubsetRandomSampler
 from utils import SeqSampler
-from datasets.tugraz import TUGrazDataset
-from datasets.tugraz_sort import TUGrazSortedDataset
-from datasets.aeroscapes import AeroscapesDataset
 from os import path
 import torch
 from sklearn.model_selection import ShuffleSplit
@@ -20,29 +16,17 @@ import numpy as np
 import tabulator
 import ploting
 from utils import init_config
-import importlib
 import ssl
+
 ssl._create_default_https_context = ssl._create_unverified_context
 
 
 def select_dataset(config):
-    dataset_name = config.dataset_name
-    if dataset_name == 'TU_Graz':
-        dataset = TUGrazDataset(config)
-    elif dataset_name == 'aeroscapes':
-        dataset = AeroscapesDataset(config)
-    elif dataset_name == 'ruralscapes':
-        dataset = RuralscapesDataset(config)
-    elif dataset_name == 'graz_sorted':
-        dataset = TUGrazSortedDataset(config)
-    elif dataset_name == 'ruralscapes_split':
-        dataset = RuralscapesOrigSplit(config)
-    elif dataset_name == 'ruralscapes_segprop':
-        dataset = RuralscapesOrigSegprop(config)
-    elif dataset_name == 'dummy':
-        dataset = DummyDataset(config)
-    else:
-        raise Exception(f'Dataset name {dataset_name}, not found.')
+    dataset_classname = config.dataset_name
+    try:
+        dataset = eval(dataset_classname)(config)
+    except Exception:
+        raise Exception(f'Dataset classname {dataset_classname}, not found.')
 
     return dataset
 

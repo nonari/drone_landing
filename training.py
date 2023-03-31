@@ -14,24 +14,15 @@ from custom_models import losses
 
 
 def configure_net(net_config, classes):
-    net_type = net_config['net']
+    net_type = net_config['net']['name']
     if net_type == "unet":
-        net = smp.Unet(
-            encoder_name=net_config['encoder'],
-            encoder_weights='imagenet' if net_config['pretrained'] else None,
-            in_channels=3,
-            classes=classes
-        )
+        net = smp.Unet(in_channels=3, classes=classes, **net_config['net']['params'])
     elif net_type == 'pspnet':
-        net = smp.PSPNet(
-            encoder_name=net_config['encoder'],
-            encoder_weights='imagenet' if net_config['pretrained'] else None,
-            in_channels=3,
-            classes=classes)
+        net = smp.PSPNet(in_channels=3, classes=classes, **net_config['net']['params'])
     elif net_type == 'safeuav':
-        net = safeuav.UNet_MDCB(classes, in_channels=3)
+        net = safeuav.UNet_MDCB(classes, in_channels=3, **net_config['net']['params'])
     else:
-        raise NotImplementedError
+        raise Exception(f'Unknown net type: {net_type}')
 
     return net
 
@@ -112,7 +103,7 @@ def train_net(config, dataset, train_sampler=None, checkpoint=None):
     data = load_data(config, curr_epoch)
 
     optimizer = eval(net_config['optimizer']['name'])(net.parameters(), **net_config['optimizer']['params'])
-    criterion = eval(net_config['loss'])()
+    criterion = eval(net_config['loss']['name'])(**net_config['loss']['params'])
 
     prefix = ''
     if config.folds > 1:
@@ -187,7 +178,7 @@ def train_net_with_validation(config, dataset, train_sampler=None, val_sampler=N
                             num_workers=config.num_threads)
 
     optimizer = eval(net_config['optimizer']['name'])(net.parameters(), **net_config['optimizer']['params'])
-    criterion = eval(net_config['loss'])()
+    criterion = eval(net_config['loss']['name'])(**net_config['loss']['params'])
 
     if 'lr_scheduler' in net_config:
         scheduler = eval(net_config['lr_scheduler']['name'])(optimizer, **net_config['lr_scheduler']['params'])

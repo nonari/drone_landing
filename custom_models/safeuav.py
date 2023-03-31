@@ -66,7 +66,7 @@ def get_dilate(in_channels, out_channels, dilation, kernel_size=(3, 3)):
 
 
 class UNet_MDCB(nn.Module):
-    def __init__(self, classes, in_channels=3):
+    def __init__(self, classes, in_channels=3, last='sigmoid'):
         super().__init__()
         init_nb = 24
         self.double1 = Double(in_channels, init_nb)
@@ -88,7 +88,12 @@ class UNet_MDCB(nn.Module):
         self.up3 = Up(init_nb * 2, init_nb)
 
         self.classify = nn.Conv2d(init_nb, classes, kernel_size=(1, 1), bias=True)
-        self.sigmoid = nn.Sigmoid()
+        if last == 'sigmoid':
+            self.last = nn.Sigmoid()
+        elif last == 'softmax':
+            self.last = nn.Softmax(dim=1)
+        else:
+            self.last = nn.Identity()
 
     def forward(self, x):
         s1 = self.double1(x)
@@ -111,7 +116,8 @@ class UNet_MDCB(nn.Module):
         up2 = self.up2(up1, s2)
         up3 = self.up3(up2, s1)
         res = self.classify(up3)
-        res = self.sigmoid(res)
+
+        res = self.last(res)
 
         return res
 

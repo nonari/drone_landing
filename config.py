@@ -5,7 +5,7 @@ class Config(object):
     def __init__(self, name):
         # basic options, project name should be same as dataset directory name
         self.name = name
-        self.dataset_name = 'TU_Graz'
+        self.dataset_name = None
         self.comment = 'Basic test'
 
         self.train = True
@@ -30,7 +30,7 @@ class Config(object):
         self.fold = 0
 
         # network
-        self.model_config = 'unet_resnet34'
+        self.model_config = None
         self.gpu = True
 
         # this is override on resume

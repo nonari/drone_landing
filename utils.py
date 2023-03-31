@@ -28,9 +28,19 @@ def set_val(obj, keys, val):
 
 
 def init_config(kwargs, clazz):
-    name = kwargs['name']
-    opt = clazz(name=name)
+    if 'name' not in kwargs:
+        raise Exception('Provide a name for the execution')
 
+    name = kwargs['name']
+
+    if name == '':
+        raise Exception('Name can\'t be an empty string')
+
+    opt = clazz(name=name)
+    if 'model_config' not in kwargs:
+        raise Exception('Provide model_config parameter')
+    if 'dataset_name' not in kwargs:
+        raise Exception('Provide dataset_name parameter')
     model_config = kwargs['model_config'] if 'model_config' in kwargs else opt.model_config
     net_conf_args = filter_net_config(kwargs)
 

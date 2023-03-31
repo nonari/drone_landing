@@ -1,7 +1,15 @@
 CONFIG = {
-    'net': 'safeuav',
+    'net': {
+        'name': 'safeuav',
+        'params': {
+            'last': 'sigmoid'
+        }
+    },
     'input_size': (704, 1024),
-    'loss': 'custom_models.losses.BCEDiceLoss',
+    'loss': {
+        'name': 'custom_models.losses.BCEDiceLoss',
+        'params': {}
+    },
     'optimizer': {
         'name': 'optim.RMSprop',
         'params': {
