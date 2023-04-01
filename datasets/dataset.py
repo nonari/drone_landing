@@ -79,7 +79,7 @@ class DummyDataset(GenericDataset):
         self.input_size = 64, 64
 
     def classes(self):
-        return 2
+        return 3
 
     def classnames(self):
         return np.array(['class1', 'class2'])
