@@ -1,4 +1,5 @@
 import importlib
+import numpy as np
 from torch.utils.data import DataLoader
 import segmentation_models_pytorch as smp
 import torch
@@ -244,7 +245,8 @@ def copy_good_epoch(config, epoch):
 
 def check_stop(config, data):
     max_miss = config.stop_after_miss
-    acc_val = data[config.fold]['acc_val']
+    prop = 'acc_val' if config.delta > 0 else 'loss_val'
+    acc_val = data[config.fold][prop]
     if len(acc_val) < max_miss + 1:
         return False
 
@@ -252,7 +254,7 @@ def check_stop(config, data):
     last_acc = acc_valid[-1]
     prev_acc = acc_valid[:-1]
     diffs = list(map(lambda x: last_acc - x, prev_acc))
-    valid = list(map(lambda x: x < config.delta, diffs))
+    valid = list(map(lambda x: (x * np.sign(x)) < abs(config.delta), diffs))
     stop = all(valid)
 
     return stop
