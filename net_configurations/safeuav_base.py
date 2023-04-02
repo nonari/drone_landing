@@ -11,7 +11,7 @@ CONFIG = {
         'params': {}
     },
     'optimizer': {
-        'name': 'optim.RMSprop',
+        'name': 'torch.optim.RMSprop',
         'params': {
             'lr': 1e-4,
             'alpha': 0.9,

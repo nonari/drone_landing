@@ -1,7 +1,6 @@
 from os import makedirs
 from shutil import rmtree
 from config import TestConfig, TrainConfig
-import datasets
 from training import train_net, train_net_with_validation
 import fire
 from torch.utils.data import SubsetRandomSampler
@@ -17,6 +16,7 @@ import tabulator
 import ploting
 from utils import init_config
 import ssl
+from utils import import_class
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
@@ -24,7 +24,7 @@ ssl._create_default_https_context = ssl._create_unverified_context
 def select_dataset(config):
     dataset_classname = config.dataset_name
     try:
-        dataset = eval(dataset_classname)(config)
+        dataset = import_class(dataset_classname)(config)
     except Exception:
         raise Exception(f'Dataset classname {dataset_classname}, not found.')
 

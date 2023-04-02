@@ -12,6 +12,8 @@ from mock_scheduler import MockScheduler
 from custom_models import safeuav
 import custom_models
 from custom_models import losses
+from glob import glob
+from utils import import_class
 
 
 def configure_net(net_config, classes):
@@ -103,8 +105,8 @@ def train_net(config, dataset, train_sampler=None, checkpoint=None):
     config.datalen = len(data_loader)
     data = load_data(config, curr_epoch)
 
-    optimizer = eval(net_config['optimizer']['name'])(net.parameters(), **net_config['optimizer']['params'])
-    criterion = eval(net_config['loss']['name'])(**net_config['loss']['params'])
+    optimizer = import_class(net_config['optimizer']['name'])(net.parameters(), **net_config['optimizer']['params'])
+    criterion = import_class(net_config['loss']['name'])(**net_config['loss']['params'])
 
     prefix = ''
     if config.folds > 1:
@@ -208,7 +210,7 @@ def train_net_with_validation(config, dataset, train_sampler=None, val_sampler=N
                 tq_loader.set_postfix(loss=loss.item(), acc=acc)
 
         save_data(config, data)
-        if epoch % config.validation_epochs == 0:
+        if epoch % config.validation_epochs == 0 and epoch != 0:
             with torch.no_grad():
                 config._training = False
                 save_checkpoint(config, net, epoch, 0)
@@ -230,15 +232,21 @@ def train_net_with_validation(config, dataset, train_sampler=None, val_sampler=N
                 save_data(config, data)
                 remove_past_checkpoints(config, epoch)
                 if stop or (config.max_epochs - 1 - epoch) < config.validation_epochs:
-                    copy_good_epoch(config, epoch)
+                    save_best_epoch(config, epoch, data)
                     break
 
     del net
+    remove_all_checkpoints(config)
 
 
-def copy_good_epoch(config, epoch):
-    good_epoch = epoch - config.validation_epochs * config.stop_after_miss
-    ori = path.join(config.checkpoint_path, f'{config.fold}_{good_epoch}')
+def save_best_epoch(config, epoch, data):
+    prop = 'acc_val' if config.delta > 0 else 'loss_val'
+    vals = np.array(data[config.fold][prop])
+    best_pos = np.argmax(vals) if config.delta > 0 else np.argmin(vals)
+    best_pos_rev = len(vals) - best_pos - 1
+    best_epoch = epoch - config.validation_epochs * best_pos_rev
+    print(f'Best epoch: {best_epoch}')
+    ori = path.join(config.checkpoint_path, f'{config.fold}_{best_epoch}')
     dst = path.join(config.model_path, f'{config.fold}')
     copy(ori, dst)
 
@@ -249,7 +257,7 @@ def check_stop(config, data):
     acc_val = data[config.fold][prop]
     if len(acc_val) < max_miss + 1:
         return False
-
+    print(f'Checking Stop: {acc_val}')
     acc_valid = acc_val[-max_miss - 1:]
     last_acc = acc_valid[-1]
     prev_acc = acc_valid[:-1]
@@ -260,5 +268,9 @@ def check_stop(config, data):
     return stop
 
 
-
-
+def remove_all_checkpoints(config):
+    paths = glob(path.join(config.checkpoint_path, '*'))
+    print('Removing all checkpoints...')
+    for p in paths:
+        if path.exists(p):
+            remove(p)

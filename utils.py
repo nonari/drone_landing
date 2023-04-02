@@ -6,7 +6,6 @@ from config import TestConfig
 from os import path
 
 
-
 class SeqSampler(Sampler[int]):
     def __init__(self, data_source, indices):
         super().__init__(None)
@@ -22,7 +21,7 @@ class SeqSampler(Sampler[int]):
 def set_val(obj, keys, val):
     curr_level = obj
     for key in keys[:-1]:
-        curr_level = obj[key]
+        curr_level = curr_level[key]
 
     curr_level[keys[-1]] = val
 
@@ -82,3 +81,11 @@ def generate_net_config(model_config, input_args, net_config=None):
         set_val(net_config, parts, value)
 
     return net_config
+
+
+def import_class(full_name):
+    classname = full_name.split('.')[-1]
+    classpath = full_name[:-1 - len(classname)]
+    clazz = getattr(importlib.import_module(classpath), classname)
+
+    return clazz

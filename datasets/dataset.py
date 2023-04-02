@@ -73,7 +73,7 @@ class GenericDataset(Dataset, ABC):
 class DummyDataset(GenericDataset):
     def __init__(self, config):
         self.config = config
-        self.color_key = np.array([[0, 0, 0], [255, 255, 255]])
+        self.color_key = np.array([[0, 0, 0], [255, 0, 0], [255, 255, 255]])
         self.batch_size = config.batch_size
         # self.input_size = importlib.import_module(f'net_configurations.{config.model_config}').CONFIG['input_size']
         self.input_size = 64, 64
@@ -82,7 +82,7 @@ class DummyDataset(GenericDataset):
         return 3
 
     def classnames(self):
-        return np.array(['class1', 'class2'])
+        return np.array(['class1', 'class2', 'class3'])
 
     def colors(self):
         return self.color_key

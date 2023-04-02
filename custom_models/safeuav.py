@@ -92,8 +92,10 @@ class UNet_MDCB(nn.Module):
             self.last = nn.Sigmoid()
         elif last == 'softmax':
             self.last = nn.Softmax(dim=1)
-        else:
+        elif last == 'identity':
             self.last = nn.Identity()
+        else:
+            raise Exception(f'Unknown layer type: {last}')
 
     def forward(self, x):
         s1 = self.double1(x)

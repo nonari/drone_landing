@@ -61,14 +61,26 @@ class DiceLoss(nn.Module):
         return 1 - dice_coeff(y_pred, y_true)
 
 
-class CEWeightDiceLoss(nn.Module):
+class CEWeightDiceAvgLoss(nn.Module):
     def __init__(self, w):
         super().__init__()
-        self.bce_loss = nn.CrossEntropyLoss(weight=w)
+        self.ce_loss = nn.CrossEntropyLoss(weight=w)
         self.dice_loss = DiceAvgLoss()
 
     def forward(self, y_true, y_pred):
-        loss = self.bce_loss(y_true, y_pred) + self.dice_loss(y_true, y_pred)
+        loss = self.ce_loss(y_true, y_pred) + self.dice_loss(y_true, y_pred)
+
+        return loss
+
+
+class CEWeightDiceLoss(nn.Module):
+    def __init__(self, w):
+        super().__init__()
+        self.ce_loss = nn.CrossEntropyLoss(weight=w)
+        self.dice_loss = DiceLoss()
+
+    def forward(self, y_true, y_pred):
+        loss = self.ce_loss(y_true, y_pred) + self.dice_loss(y_true, y_pred)
 
         return loss
 

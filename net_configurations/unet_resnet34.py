@@ -7,9 +7,9 @@ CONFIG = {
         }
     },
     'input_size': (704, 1024),
-    'loss': 'nn.BCEWithLogitsLoss',
+    'loss': 'torch.nn.BCEWithLogitsLoss',
     'optimizer': {
-        'name': 'optim.RMSprop',
+        'name': 'torch.optim.RMSprop',
         'params': {
             'lr': 1e-2,
             'momentum': 0,
@@ -17,7 +17,7 @@ CONFIG = {
           }
     },
     'lr_scheduler': {
-        'name': 'optim.lr_scheduler.CosineAnnealingWarmRestarts',
+        'name': 'torch.optim.lr_scheduler.CosineAnnealingWarmRestarts',
         'params': {
             'T_0': 10,
             'eta_min': 1e-5,
