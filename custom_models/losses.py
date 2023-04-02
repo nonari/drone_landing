@@ -64,7 +64,7 @@ class DiceLoss(nn.Module):
 class CEWeightDiceAvgLoss(nn.Module):
     def __init__(self, w):
         super().__init__()
-        self.ce_loss = nn.CrossEntropyLoss(weight=w)
+        self.ce_loss = nn.CrossEntropyLoss(weight=torch.tensor(w))
         self.dice_loss = DiceAvgLoss()
 
     def forward(self, y_true, y_pred):
@@ -76,7 +76,7 @@ class CEWeightDiceAvgLoss(nn.Module):
 class CEWeightDiceLoss(nn.Module):
     def __init__(self, w):
         super().__init__()
-        self.ce_loss = nn.CrossEntropyLoss(weight=w)
+        self.ce_loss = nn.CrossEntropyLoss(weight=torch.tensor(w))
         self.dice_loss = DiceLoss()
 
     def forward(self, y_true, y_pred):

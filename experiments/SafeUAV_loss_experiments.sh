@@ -9,10 +9,10 @@
 
 dataset=datasets.ruralscapes.RuralscapesOrigSplit
 ruralroot=/home/xxx/tfm/ruralscapes_light
-weights="[0.04134588, 0.04880927, 0.03492295, 0.11057553, 0.534113, 0.2791244, 0.11494067, 0.46297347, 1, 1, 1, 1]"
+weights="[0.04134588,0.04880927,0.03492295,0.11057553,0.534113,0.2791244,0.11494067,0.46297347,1,1,1,1]"
 
 # BCEDice Sigmoid
-echo python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
+python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
 -name=SUAV_Si_BCED -override=False -validation_epochs=10 -stop_after_miss=3 -batch_size=4 \
 -num_threads=4 -max_epochs=150 -delta=-0.01 \
 -model_config=safeuav_base \
@@ -20,7 +20,7 @@ echo python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name=
 -model_config.loss.name=custom_models.losses.BCEDiceLoss
  
 # BCEDiceAvg Sigmoid
-echo python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
+python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
 -name=SUAV_Si_BCEDA -override=False -validation_epochs=10 -stop_after_miss=3 -batch_size=4 \
 -num_threads=4 -max_epochs=150 -delta=-0.01 \
 -model_config=safeuav_base \
@@ -28,7 +28,7 @@ echo python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name=
 -model_config.loss.name=custom_models.losses.BCEDiceAvgLoss
  
  # BCEDice Softmax
-echo python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
+python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
 -name=SUAV_So_BCED -override=False -validation_epochs=10 -stop_after_miss=3 -batch_size=4 \
 -num_threads=4 -max_epochs=150 -delta=-0.01 \
 -model_config=safeuav_base \
@@ -36,7 +36,7 @@ echo python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name=
 -model_config.loss.name=custom_models.losses.BCEDiceLoss
  
 # BCEDiceAvg Softmax
-echo python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
+python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
 -name=SUAV_So_BCEDA -override=False -validation_epochs=10 -stop_after_miss=3 -batch_size=4 \
 -num_threads=4 -max_epochs=150 -delta=-0.01 \
 -model_config=safeuav_base \
@@ -45,7 +45,7 @@ echo python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name=
  
  
 # DiceAvg Softmax
-echo python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
+python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
 -name=SUAV_So_DA -override=False -validation_epochs=10 -stop_after_miss=3 -batch_size=4 \
 -num_threads=4 -max_epochs=150 -delta=-0.01 \
 -model_config=safeuav_base \
@@ -54,7 +54,7 @@ echo python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name=
 
 
 # DiceAvg Sigmoid
-echo python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
+python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
 -name=SUAV_Si_DA -override=False -validation_epochs=10 -stop_after_miss=3 -batch_size=4 \
 -num_threads=4 -max_epochs=150 -delta=-0.01 \
 -model_config=safeuav_base \
@@ -63,7 +63,7 @@ echo python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name=
 
 
 # Dice Sigmoid
-echo python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
+python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
 -name=SUAV_Si_D -override=False -validation_epochs=10 -stop_after_miss=3 -batch_size=4 \
 -num_threads=4 -max_epochs=150 -delta=-0.01 \
 -model_config=safeuav_base \
@@ -71,7 +71,7 @@ echo python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name=
 -model_config.loss.name=custom_models.losses.DiceAvgLoss
 
 # Dice Softmax
-echo python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
+python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
 -name=SUAV_So_D -override=False -validation_epochs=10 -stop_after_miss=3 -batch_size=4 \
 -num_threads=4 -max_epochs=150 -delta=-0.01 \
 -model_config=safeuav_base \
@@ -80,7 +80,7 @@ echo python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name=
 
 
 # CEWeightDiceAvgLoss Softmax
-echo python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
+python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
 -name=SUAV_So_CEWDA -override=False -validation_epochs=10 -stop_after_miss=3 -batch_size=4 \
 -num_threads=4 -max_epochs=150 -delta=-0.01 \
 -model_config=safeuav_base \
@@ -90,7 +90,7 @@ echo python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name=
 
 
 # CEWeightDiceLoss Softmax
-echo python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
+python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
 -name=SUAV_So_CEWD -override=False -validation_epochs=10 -stop_after_miss=3 -batch_size=4 \
 -num_threads=4 -max_epochs=150 -delta=-0.01 \
 -model_config=safeuav_base \
@@ -99,7 +99,7 @@ echo python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name=
 -model_config.loss.params.w="$weights"
 
 # CELoss Softmax
-echo python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
+python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
 -name=SUAV_So_CE -override=False -validation_epochs=10 -stop_after_miss=3 -batch_size=4 \
 -num_threads=4 -max_epochs=150 -delta=-0.01 \
 -model_config=safeuav_base \
@@ -109,7 +109,7 @@ echo python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name=
 
 
 # CELoss Sigmoid
-echo python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
+python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
 -name=SUAV_Si_CE -override=False -validation_epochs=10 -stop_after_miss=3 -batch_size=4 \
 -num_threads=4 -max_epochs=150 -delta=-0.01 \
 -model_config=safeuav_base \
@@ -121,51 +121,51 @@ echo python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name=
 
 # TESTS
 
-echo python3 drone_landing/main.py test \
+python3 drone_landing/main.py test \
 -rural_root="$ruralroot" -model_config=safeuav_base \
 -name=SUAV_Si_BCED -dataset_name="$dataset"
 
-echo python3 drone_landing/main.py test \
+python3 drone_landing/main.py test \
 -rural_root="$ruralroot" -model_config=safeuav_base \
 -name=SUAV_Si_BCEDA -dataset_name="$dataset"
 
-echo python3 drone_landing/main.py test \
+python3 drone_landing/main.py test \
 -rural_root="$ruralroot" -model_config=safeuav_base \
 -name=SUAV_So_BCED -dataset_name="$dataset"
 
-echo python3 drone_landing/main.py test \
+python3 drone_landing/main.py test \
 -rural_root="$ruralroot" -model_config=safeuav_base \
 -name=SUAV_So_BCEDA -dataset_name="$dataset"
 
-echo python3 drone_landing/main.py test \
+python3 drone_landing/main.py test \
 -rural_root="$ruralroot" -model_config=safeuav_base \
 -name=SUAV_So_DA -dataset_name="$dataset"
 
-echo python3 drone_landing/main.py test \
+python3 drone_landing/main.py test \
 -rural_root="$ruralroot" -model_config=safeuav_base \
 -name=SUAV_Si_DA -dataset_name="$dataset"
 
-echo python3 drone_landing/main.py test \
+python3 drone_landing/main.py test \
 -rural_root="$ruralroot" -model_config=safeuav_base \
 -name=SUAV_Si_D -dataset_name="$dataset"
 
-echo python3 drone_landing/main.py test \
+python3 drone_landing/main.py test \
 -rural_root="$ruralroot" -model_config=safeuav_base \
 -name=SUAV_So_D -dataset_name="$dataset"
 
-echo python3 drone_landing/main.py test \
+python3 drone_landing/main.py test \
 -rural_root="$ruralroot" -model_config=safeuav_base \
 -name=SUAV_So_CEWDA -dataset_name="$dataset"
 
-echo python3 drone_landing/main.py test \
+python3 drone_landing/main.py test \
 -rural_root="$ruralroot" -model_config=safeuav_base \
 -name=SUAV_So_CEWD -dataset_name="$dataset"
 
-echo python3 drone_landing/main.py test \
+python3 drone_landing/main.py test \
 -rural_root="$ruralroot" -model_config=safeuav_base \
 -name=SUAV_So_CE -dataset_name="$dataset"
 
-echo python3 drone_landing/main.py test \
+python3 drone_landing/main.py test \
 -rural_root="$ruralroot" -model_config=safeuav_base \
 -name=SUAV_Si_CE -dataset_name="$dataset"
 
