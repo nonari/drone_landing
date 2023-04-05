@@ -262,7 +262,7 @@ def check_stop(config, data):
     last_acc = acc_valid[-1]
     prev_acc = acc_valid[:-1]
     diffs = list(map(lambda x: last_acc - x, prev_acc))
-    valid = list(map(lambda x: (x * np.sign(x)) < abs(config.delta), diffs))
+    valid = list(map(lambda x: (x * np.sign(config.delta)) < abs(config.delta), diffs))
     stop = all(valid)
 
     return stop
