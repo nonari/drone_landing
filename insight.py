@@ -10,11 +10,16 @@ import config
 
 def class_hist(dataset):
     labels_hist = np.zeros(dataset.classes())
+    presence = np.zeros(dataset.classes())
     for im, label in dataset:
         label_hist = np.sum(label.numpy(), axis=(1, 2))
         labels_hist += label_hist
-    print(labels_hist)
-    print(labels_hist / labels_hist.sum())
+        presence += (label_hist > 0).astype(int)
+
+    print(f'Hist: {labels_hist}')
+    print(f'Norm: {labels_hist / labels_hist.sum()}')
+    print(f'Presence total: {presence}')
+    print(f'Presence %: {presence  / len(dataset)}')
 
 
 
