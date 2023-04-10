@@ -57,7 +57,7 @@ def init_config(kwargs, clazz):
             else:
                 print('WARNING: Old file without net config')
 
-    net_config = generate_net_config(model_config, net_conf_args, base_net_config)
+    net_config = generate_net_config(model_config, net_conf_args, opt, base_net_config)
     setattr(opt, 'net_config', net_config)
 
     return opt
@@ -73,11 +73,13 @@ def filter_net_config(input_args):
     return items
 
 
-def generate_net_config(model_config, input_args, net_config=None):
+def generate_net_config(model_config, input_args, config, net_config=None):
     if net_config is None:
         net_config = importlib.import_module(f'net_configurations.{model_config}').CONFIG
     for key, value in input_args:
         parts = key[13:].split('.')
+        if value == '!CONFIG':
+            value = config
         set_val(net_config, parts, value)
 
     return net_config
