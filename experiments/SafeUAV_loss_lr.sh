@@ -18,28 +18,28 @@ params="-override=False -validation_epochs=10 -stop_after_miss=3 -batch_size=4 \
 
 # BCEDice Sigmoid
 python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
--name=SUAV_Si_BCED_lr "$params" \
+-name=SUAV_Si_BCED_lr $params \
 -model_config=safeuav_base \
 -model_config.net.params.last=sigmoid \
 -model_config.loss.name=custom_models.losses.BCEDiceLoss
 
 # BCEDiceAvg Sigmoid
 #python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
-#-name=SUAV_Si_BCEDA_lr "$params" \
+#-name=SUAV_Si_BCEDA_lr $params \
 #-model_config=safeuav_base \
 #-model_config.net.params.last=sigmoid \
 #-model_config.loss.name=custom_models.losses.BCEDiceAvgLoss
 
  # BCEDice Softmax
 #python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
-#-name=SUAV_So_BCED_lr "$params" \
+#-name=SUAV_So_BCED_lr $params \
 #-model_config=safeuav_base \
 #-model_config.net.params.last=softmax \
 #-model_config.loss.name=custom_models.losses.BCEDiceLoss
 
 # BCEDiceAvg Softmax
 #python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
-#-name=SUAV_So_BCEDA_lr "$params" \
+#-name=SUAV_So_BCEDA_lr $params \
 #-model_config=safeuav_base \
 #-model_config.net.params.last=softmax \
 #-model_config.loss.name=custom_models.losses.BCEDiceAvgLoss
@@ -47,7 +47,7 @@ python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dat
 
 # DiceAvg Softmax
 #python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
-#-name=SUAV_So_DA_lr "$params" \
+#-name=SUAV_So_DA_lr $params \
 #-model_config=safeuav_base \
 #-model_config.net.params.last=softmax \
 #-model_config.loss.name=custom_models.losses.DiceAvgLoss
@@ -55,7 +55,7 @@ python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dat
 
 # DiceAvg Sigmoid
 #python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
-#-name=SUAV_Si_DA_lr "$params" \
+#-name=SUAV_Si_DA_lr $params \
 #-model_config=safeuav_base \
 #-model_config.net.params.last=sigmoid \
 #-model_config.loss.name=custom_models.losses.DiceAvgLoss
@@ -63,14 +63,14 @@ python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dat
 
 # Dice Sigmoid
 #python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
-#-name=SUAV_Si_D_lr "$params" \
+#-name=SUAV_Si_D_lr $params \
 #-model_config=safeuav_base \
 #-model_config.net.params.last=sigmoid \
 #-model_config.loss.name=custom_models.losses.DiceAvgLoss
 
 # Dice Softmax
 #python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
-#-name=SUAV_So_D_lr "$params" \
+#-name=SUAV_So_D_lr $params \
 #-num_threads=4 -max_epochs=150 -delta=-0.01 \
 #-model_config=safeuav_base \
 #-model_config.net.params.last=softmax \
@@ -79,7 +79,7 @@ python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dat
 
 # CEWeightDiceAvgLoss Softmax
 python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
--name=SUAV_So_CEWDA_lr "$params" \
+-name=SUAV_So_CEWDA_lr $params \
 -model_config=safeuav_base \
 -model_config.net.params.last=softmax \
 -model_config.loss.name=custom_models.losses.CEWeightDiceAvgLoss \
@@ -89,7 +89,7 @@ python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dat
 
 # CEWeightDiceAvgLoss Sigmoid
 python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
--name=SUAV_Si_CEWDA_lr "$params" \
+-name=SUAV_Si_CEWDA_lr $params \
 -model_config=safeuav_base \
 -model_config.net.params.last=sigmoid \
 -model_config.loss.name=custom_models.losses.CEWeightDiceAvgLoss \
@@ -99,7 +99,7 @@ python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dat
 
 # CEWeightDiceLoss Softmax
 python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
--name=SUAV_So_CEWD_lr "$params" \
+-name=SUAV_So_CEWD_lr $params \
 -model_config=safeuav_base \
 -model_config.net.params.last=softmax \
 -model_config.loss.name=custom_models.losses.CEWeightDiceLoss \
@@ -109,7 +109,7 @@ python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dat
 
 # CEWeightDiceLoss Sigmoid
 python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
--name=SUAV_Si_CEWD_lr "$params" \
+-name=SUAV_Si_CEWD_lr $params \
 -model_config=safeuav_base \
 -model_config.net.params.last=sigmoid \
 -model_config.loss.name=custom_models.losses.CEWeightDiceLoss \
@@ -119,7 +119,7 @@ python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dat
 
 # CELoss Softmax
 python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
--name=SUAV_So_CE_lr "$params" \
+-name=SUAV_So_CE_lr $params \
 -model_config=safeuav_base \
 -model_config.net.params.last=softmax \
 -model_config.loss.name=custom_models.losses.CELoss
@@ -127,7 +127,7 @@ python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dat
 
 # CELoss Sigmoid
 python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset" \
--name=SUAV_Si_CE_lr "$params" \
+-name=SUAV_Si_CE_lr $params \
 -model_config=safeuav_base \
 -model_config.net.params.last=sigmoid \
 -model_config.loss.name=custom_models.losses.CELoss
