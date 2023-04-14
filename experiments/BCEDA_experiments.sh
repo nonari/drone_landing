@@ -44,3 +44,19 @@ python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dat
 -model_config.net.params.last=sigmoid \
 -augment=False \
 -model_config.loss.name=custom_models.losses.BCEDiceAvgLoss
+
+python3 drone_landing/main.py test \
+-rural_root="$ruralroot" -model_config=safeuav_base \
+-name=SUAV_BCEDA_seg_noaug -dataset_name="$dataset_orig"
+
+python3 drone_landing/main.py test \
+-rural_root="$ruralroot" -model_config=safeuav_base \
+-name=SUAV_BCEDA_seg_aug -dataset_name="$dataset_orig"
+
+python3 drone_landing/main.py test \
+-rural_root="$ruralroot" -model_config=safeuav_base \
+-name=SUAV_BCEDA_base_noaug -dataset_name="$dataset_orig"
+
+python3 drone_landing/main.py test \
+-rural_root="$ruralroot" -model_config=safeuav_base \
+-name=SUAV_BCEDA_base_aug -dataset_name="$dataset_orig"
