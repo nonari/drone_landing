@@ -15,8 +15,6 @@ class Config(object):
         self.aeroscapes_root = '/home/nonari/Documentos/aeroscapes'
 
         self.tugraz_root = '/home/nonari/Documentos/semantic_drone_dataset_semantics_v1.1/semantic_drone_dataset/'
-        self.tugraz_images_loc = 'low_res_images'
-        self.tugraz_labels_loc = 'low_res_label_images'
 
         self.save_path = path.join('./executions', self.name)
         self.model_path = path.join(self.save_path, 'models')

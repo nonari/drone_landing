@@ -107,9 +107,11 @@ def label_transformation(color_keys, new_size, device):
 class TUGrazDataset(GenericDataset):
     def __init__(self, options):
         self.options = options
+        self.tugraz_images_loc = 'low_res_images'
+        self.tugraz_labels_loc = 'low_res_label_images'
         subset = 'training_set'
-        images_root = path.join(options.tugraz_root, subset, options.tugraz_images_loc)
-        labels_root = path.join(options.tugraz_root, subset, f'gt/semantic/{options.tugraz_labels_loc}')
+        images_root = path.join(options.tugraz_root, subset, self.tugraz_images_loc)
+        labels_root = path.join(options.tugraz_root, subset, f'gt/semantic/{self.tugraz_labels_loc}')
 
         image_paths = glob(images_root + '/*.jpg')
         label_paths = glob(labels_root + '/*.png')

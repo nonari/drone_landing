@@ -106,6 +106,8 @@ def augment_rural(img, label):
 class RuralscapesDataset(GenericDataset):
     def __init__(self, config):
         self.config = config
+        if not path.exists(config.rural_root):
+            raise Exception('Incorrect path for Ruralscapes dataset')
         images_root = path.join(config.rural_root, 'frames')
         labels_root = path.join(config.rural_root, 'labels/resized_labels')
 
@@ -172,7 +174,7 @@ class RuralscapesDataset(GenericDataset):
     def __getitem__(self, item):
         tensor_im = self._prepare_im(self._image_paths[item])
         pil_lab = self._prepare_lab(self._label_paths[item])
-        if isinstance(self.config, TrainConfig) and self.config._training:
+        if isinstance(self.config, TrainConfig) and self.config._training and self.config.augment:
             tensor_im, pil_lab = augment_rural(tensor_im, pil_lab)
         tensor_lab = label_to_tensor(np.asarray(pil_lab), color_keys)
         return tensor_im, tensor_lab
