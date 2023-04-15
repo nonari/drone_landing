@@ -25,9 +25,11 @@ ssl._create_default_https_context = ssl._create_unverified_context
 def select_dataset(config):
     dataset_classname = config.dataset_name
     try:
-        dataset = import_class(dataset_classname)(config)
+        clazz = import_class(dataset_classname)
     except Exception:
         raise Exception(f'Dataset classname {dataset_classname}, not found.')
+
+    dataset = clazz(config)
 
     return dataset
 
