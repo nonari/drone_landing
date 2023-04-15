@@ -57,17 +57,19 @@ class_names = [
 
 class UAVid(GenericDataset):
     def __init__(self, config):
-        self.config = config
+        self._config = config
         if not path.exists(config.rural_root):
             raise Exception('Incorrect path for UAVid dataset')
-        self.val_image_paths = glob(path.join(config.uav_root, 'uavid_val', '*', 'Images', '*'))
-        self.val_label_paths = glob(path.join(config.uav_root, 'uavid_val', '*', 'Label', '*'))
-        self.train_image_paths = glob(path.join(config.uav_root, 'uavid_train', '*', 'Images', '*'))
-        self.train_label_paths = glob(path.join(config.uav_root, 'uavid_train', '*', 'Label', '*'))
-        val_len = len(self.val_label_paths)
-        train_len = len(self.train_label_paths)
-        self.train_idx = [i for i in range(val_len)]
-        self.val_idx = [i for i in range(train_len)]
+        train_image_paths = glob(path.join(config.uav_root, 'uavid_train', '*', 'Images', '*'))
+        train_label_paths = glob(path.join(config.uav_root, 'uavid_train', '*', 'Label', '*'))
+        val_image_paths = glob(path.join(config.uav_root, 'uavid_val', '*', 'Images', '*'))
+        val_label_paths = glob(path.join(config.uav_root, 'uavid_val', '*', 'Label', '*'))
+        self._image_paths = train_image_paths + val_image_paths
+        self._label_paths = train_label_paths + val_label_paths
+        val_len = len(self._val_label_paths)
+        train_len = len(self._train_label_paths)
+        self._train_idx = [i for i in range(train_len)]
+        self._val_idx = [i for i in range(train_len, val_len + train_len)]
 
         net_config = config.net_config
         t_rural = adapt_image(net_config['input_size'])
@@ -88,15 +90,15 @@ class UAVid(GenericDataset):
         return color_keys[true], color_keys[pred]
 
     def get_folds(self):
-        if isinstance(self.config, TrainConfig):
-            return [(self.train_idx, self.val_idx)]
+        if isinstance(self._config, TrainConfig):
+            return [(self._train_idx, self._val_idx)]
         else:
-            return [self.val_idx]
+            return [self._val_idx]
 
     def __getitem__(self, index):
         tensor_im = self._prepare_im(self._image_paths[index])
         pil_lab = self._prepare_lab(self._label_paths[index])
-        if isinstance(self.config, TrainConfig) and self.config._training and self.config.augment:
+        if isinstance(self._config, TrainConfig) and self._config._training and self._config.augment:
             tensor_im, pil_lab = augment_rural(tensor_im, pil_lab)
         tensor_lab = label_to_tensor(np.asarray(pil_lab), color_keys)
         return tensor_im, tensor_lab
