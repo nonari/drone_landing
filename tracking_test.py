@@ -79,7 +79,7 @@ def roi_to_vertices(x, y, w, h):
 def clean_points_in_rois(points, rois):
     for roi in rois:
         vertices = roi_to_vertices(*roi)
-        result = measure.points_in_poly(points[:, ::-1], vertices)
+        result = measure.points_in_poly(points, vertices)
         points = points[np.logical_not(result)]
 
     return points
@@ -144,7 +144,7 @@ def cv_warp(ori_im, dst_im, h_mat):
     heigh = ori_im.shape[0] + dst_im.shape[0]
     warped_im = cv.warpPerspective(ori_im, h_mat, (width, heigh))
     # warped_im[:dst_im.shape[0], :dst_im.shape[1]] = dst_im
-    warped_im = cv_merge(warped_im, dst_im)
+
     return warped_im
 
 
@@ -162,7 +162,7 @@ def main():
     # plt.imshow(mask)
     # plt.show()
     p0 = clean_points_in_rois(p0, [r])
-    for curr_frame, curr_roi in seq[5:6]:
+    for curr_frame, curr_roi in seq[5:15]:
         curr_gray = color.rgb2gray(curr_frame)
         p1 = cv_optical_flow_lk(old_gray, curr_gray, p0)
         key_p0 = [cv.KeyPoint(i[1], i[0], 1) for i in p0]
@@ -174,15 +174,19 @@ def main():
         p0, p1 = clean_points_outside_frame(p0, p1, SIZE)
         h_mat = cv_find_homography(p0, p1)
         warped_old = cv_warp(old_frame, curr_frame, h_mat)
+        merged_im = cv_merge(warped_old, curr_frame)
         mask = points_to_mask(p1, SIZE[::-1], mask)
         drawn_im = draw_mask(curr_frame, mask)
-        plt.imshow(warped_old)
+        plt.imshow(merged_im)
         plt.show()
         plt.imshow(matched)
         plt.show()
         buff.push(drawn_im)
-        p0 = p1
+        old_frame = curr_frame
         old_gray = curr_gray
+        p0 = find_corners(old_gray)
+        p0 = clean_points_in_rois(p0, [curr_roi])
+
 
     buff.close()
 
