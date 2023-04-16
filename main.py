@@ -17,7 +17,7 @@ import ploting
 from utils import init_config
 import ssl
 import json
-from utils import import_class
+from utils import import_class, print_obj
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
@@ -126,7 +126,7 @@ def train(**kwargs):
     opt = init_config(kwargs, TrainConfig)
     opt.train = True
 
-    print(json.dumps(opt.__dict__, indent=4))
+    print_obj(opt)
 
     # create directories
     if not opt.resume:
@@ -160,7 +160,7 @@ def test(**kwargs):
     curr_dataset = opt.dataset_name
 
     load_execution_data(opt)
-    print(json.dumps(opt.__dict__, indent=4))
+    print_obj(opt)
 
     if not same_dataset:
         opt.dataset_name = curr_dataset

@@ -10,6 +10,7 @@ class Config(object):
 
         self.train = True
 
+        self.uavid_root = '/home/nonari/Documentos/uavid_v1.5'
         self.rural_root = '/home/nonari/Documentos/ruralscapes'
 
         self.aeroscapes_root = '/home/nonari/Documentos/aeroscapes'

@@ -4,6 +4,7 @@ import importlib
 import copy
 from config import TestConfig
 from os import path
+import json
 
 
 class SeqSampler(Sampler[int]):
@@ -91,3 +92,8 @@ def import_class(full_name):
     clazz = getattr(importlib.import_module(classpath), classname)
 
     return clazz
+
+
+def print_obj(obj):
+    def default(o): return f"<<non-serializable: {type(o).__qualname__}>>"
+    print(json.dumps(obj.__dict__, indent=4, default=default))

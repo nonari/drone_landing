@@ -58,16 +58,16 @@ class_names = [
 class UAVid(GenericDataset):
     def __init__(self, config):
         self._config = config
-        if not path.exists(config.rural_root):
+        if not path.exists(config.uavid_root):
             raise Exception('Incorrect path for UAVid dataset')
-        train_image_paths = glob(path.join(config.uav_root, 'uavid_train', '*', 'Images', '*'))
-        train_label_paths = glob(path.join(config.uav_root, 'uavid_train', '*', 'Label', '*'))
-        val_image_paths = glob(path.join(config.uav_root, 'uavid_val', '*', 'Images', '*'))
-        val_label_paths = glob(path.join(config.uav_root, 'uavid_val', '*', 'Label', '*'))
+        train_image_paths = glob(path.join(config.uavid_root, 'uavid_train', '*', 'Images', '*'))
+        train_label_paths = glob(path.join(config.uavid_root, 'uavid_train', '*', 'Labels', '*'))
+        val_image_paths = glob(path.join(config.uavid_root, 'uavid_val', '*', 'Images', '*'))
+        val_label_paths = glob(path.join(config.uavid_root, 'uavid_val', '*', 'Labels', '*'))
         self._image_paths = train_image_paths + val_image_paths
         self._label_paths = train_label_paths + val_label_paths
-        val_len = len(self._val_label_paths)
-        train_len = len(self._train_label_paths)
+        val_len = len(val_label_paths)
+        train_len = len(train_label_paths)
         self._train_idx = [i for i in range(train_len)]
         self._val_idx = [i for i in range(train_len, val_len + train_len)]
 
