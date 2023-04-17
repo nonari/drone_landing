@@ -1,19 +1,15 @@
 CONFIG = {
     'net': {
         'name': 'safeuav',
-        'params': {
-            'last': 'sigmoid',
-            'init_nb': 24
-        }
+        'params': {}
     },
     'input_size': (704, 1024),
     'loss': {
-        'name': 'custom_models.losses.BCEDiceLoss',
+        'name': 'custom_models.losses.BCEDiceAvgLoss',
         'params': {}
     },
     'optimizer': {
         'name': 'torch.optim.RMSprop',
-        'params': {
-        }
+        'params': {}
     },
 }

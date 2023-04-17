@@ -66,9 +66,9 @@ def get_dilate(in_channels, out_channels, dilation, kernel_size=(3, 3)):
 
 
 class UNet_MDCB(nn.Module):
-    def __init__(self, classes, in_channels=3, last='sigmoid'):
+    def __init__(self, classes, in_channels=3, last='sigmoid', init_nb=24):
         super().__init__()
-        init_nb = 24
+
         self.double1 = Double(in_channels, init_nb)
         self.down1 = Down(init_nb)
         self.double2 = Double(init_nb, init_nb * 2)

@@ -116,6 +116,8 @@ def label_transformation(color_keys, new_size, device):
 class TUGrazSortedDataset(GenericDataset):
     def __init__(self, config):
         self.config = config
+        if not path.exists(config.tugraz_root):
+            raise Exception('Incorrect path for Tugraz sorted dataset')
         subset = 'training_set'
         images_root = path.join(config.tugraz_root, subset, 'classif')
         labels_root = path.join(config.tugraz_root, subset, f'gt/semantic/label_collapsed')

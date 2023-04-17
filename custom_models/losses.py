@@ -96,3 +96,15 @@ class CELoss(nn.Module):
         loss = self.ce_loss(y_true, y_pred)
 
         return loss
+
+
+class BCELL(nn.Module):
+    def __init__(self, w, config):
+        super().__init__()
+        device = torch.device('cuda' if torch.cuda.is_available() and config.gpu else 'cpu')
+        self.bcell = nn.BCEWithLogitsLoss(pos_weight=torch.tensor(w).to(device))
+
+    def forward(self, y_true, y_pred):
+        loss = self.bcell(y_true, y_pred)
+
+        return loss
