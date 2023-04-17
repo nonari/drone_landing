@@ -102,7 +102,7 @@ class BCELL(nn.Module):
     def __init__(self, w, config):
         super().__init__()
         device = torch.device('cuda' if torch.cuda.is_available() and config.gpu else 'cpu')
-        self.bcell = nn.BCEWithLogitsLoss(pos_weight=torch.tensor(w).to(device))
+        self.bcell = nn.BCEWithLogitsLoss(pos_weight=torch.tensor(w).to(device).unsqueeze(dim=0).unsqueeze(dim=2).unsqueeze(dim=3))
 
     def forward(self, y_true, y_pred):
         loss = self.bcell(y_true, y_pred)

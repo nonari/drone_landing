@@ -6,7 +6,7 @@
 
 
 dataset_rural=datasets.ruralscapes.RuralscapesOrigSplit
-dataset_uavid=datsets.uavid.UAVid
+dataset_uavid=datasets.uavid.UAVid
 dataset_tugraz=datasets.tugraz_sort.TUGrazSortedDataset
 
 ruralroot=/home/xxx/tfm/ruralscapes_light
@@ -21,7 +21,7 @@ weights="[1.08, 1.39, 1., 3.16, 15.29, 7.99, 3.29, 1, 95.46, 91.95, 306.46, 45.5
 # Ruralscapes more nb
 python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dataset_rural" \
 -name=rural_nb48 $params \
--model_config.net.params.init_nb=48 \
+-model_config.net.params.init_nb=36 \
 -model_config=safeuav_base \
 -augment=True \
 -model_config.loss.name=custom_models.losses.BCEDiceAvgLoss
@@ -35,7 +35,6 @@ python3 drone_landing/main.py train -rural_root="$ruralroot" -dataset_name="$dat
 -model_config.loss.name=custom_models.losses.BCELL \
 -model_config.loss.params.config=!CONFIG \
 -model_config.loss.params.w="$weights"
-
 
 # UAVid
 python3 drone_landing/main.py train -uavid_root="$uavidroot" -dataset_name="$dataset_uavid" \
