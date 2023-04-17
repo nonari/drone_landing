@@ -230,7 +230,7 @@ def train_net_with_validation(config, dataset, train_sampler=None, val_sampler=N
                 add_data(data, config, epoch, acc_val, loss_val, val=True)
                 stop = check_stop(config, data)
                 save_data(config, data)
-                remove_past_checkpoints(config, epoch)
+                # remove_past_checkpoints(config, epoch)
                 if stop or (config.max_epochs - 1 - epoch) < config.validation_epochs:
                     save_best_epoch(config, epoch, data)
                     break

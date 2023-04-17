@@ -95,5 +95,10 @@ def import_class(full_name):
 
 
 def print_obj(obj):
+    obj_dict = copy.copy(obj.__dict__)
+    for k in obj.__dict__:
+        if k.startswith('_'):
+            del obj_dict[k]
+
     def default(o): return f"<<non-serializable: {type(o).__qualname__}>>"
-    print(json.dumps(obj.__dict__, indent=4, default=default))
+    print(json.dumps(obj_dict, indent=4, default=default), )
