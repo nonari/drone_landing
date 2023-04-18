@@ -3,7 +3,8 @@ import importlib
 import numpy as np
 from PIL import Image
 from torch.utils.data import Dataset
-from torchvision.transforms import transforms
+from torch.nn.functional import one_hot
+from torchvision.transforms import transforms, InterpolationMode
 import torch
 
 from config import TrainConfig
@@ -47,7 +48,7 @@ def adapt_label(new_size):
 
 def adapt_image(size):
     return transforms.Compose([
-        transforms.Resize(size, interpolation=Image.BILINEAR),
+        transforms.Resize(size, interpolation=InterpolationMode.BILINEAR),
         transforms.ToTensor(),
         transforms.Normalize(**imagenet_norm)
     ])
@@ -74,7 +75,6 @@ class DummyDataset(GenericDataset):
     def __init__(self, config):
         self.config = config
         self.color_key = np.array([[0, 0, 0], [255, 0, 0], [255, 255, 255]])
-        self.batch_size = config.batch_size
         # self.input_size = importlib.import_module(f'net_configurations.{config.model_config}').CONFIG['input_size']
         self.input_size = 64, 64
 
@@ -100,10 +100,7 @@ class DummyDataset(GenericDataset):
 
     def __getitem__(self, index):
         image = torch.rand((3, self.input_size[0], self.input_size[1]))
-        sparse_label = torch.zeros((self.classes(), self.input_size[0], self.input_size[1]))
-        dense_label = np.random.randint(0, self.classes(), (self.input_size[0], self.input_size[1]))
-        idxy = np.arange(self.input_size[0])[:, None].repeat(self.input_size[1], axis=1)
-        idxx = np.arange(self.input_size[1])[None].repeat(self.input_size[0], axis=0)
-        sparse_label[dense_label, idxy, idxx] = 1
+        dense_label = torch.argmax(image, dim=0)
+        sparse_label = one_hot(dense_label, num_classes=3).movedim(2, 0).float()
 
         return image, sparse_label

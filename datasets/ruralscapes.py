@@ -6,6 +6,7 @@ import torchvision.transforms
 from PIL import Image
 import importlib
 import torchvision.transforms.functional as t_func
+from torchvision.transforms import InterpolationMode as Interpolation
 from config import TrainConfig
 
 from datasets.dataset import prepare_image, adapt_label, adapt_image, label_to_tensor, GenericDataset
@@ -74,8 +75,8 @@ def rand_shift_scale_rotate(image, mask, u=0.5):
     if np.random.random() < u:
         size = image.shape[-2:]
         i, j, h, w = torchvision.transforms.RandomResizedCrop.get_params(image, [0.95, 0.95], [1.0, 1.0])
-        image = t_func.resized_crop(image, i, j, h, w, size, interpolation=Image.BILINEAR)
-        mask = t_func.resized_crop(mask, i, j, h, w, size, interpolation=Image.NEAREST)
+        image = t_func.resized_crop(image, i, j, h, w, size, interpolation=Interpolation.BILINEAR)
+        mask = t_func.resized_crop(mask, i, j, h, w, size, interpolation=Interpolation.NEAREST)
 
     return image, mask
 

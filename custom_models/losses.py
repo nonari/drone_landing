@@ -99,6 +99,17 @@ class CELoss(nn.Module):
 
 
 class BCELL(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.bcell = nn.BCEWithLogitsLoss()
+
+    def forward(self, y_true, y_pred):
+        loss = self.bcell(y_true, y_pred)
+
+        return loss
+
+
+class BCELLW(nn.Module):
     def __init__(self, w, config):
         super().__init__()
         device = torch.device('cuda' if torch.cuda.is_available() and config.gpu else 'cpu')
@@ -106,5 +117,18 @@ class BCELL(nn.Module):
 
     def forward(self, y_true, y_pred):
         loss = self.bcell(y_true, y_pred)
+
+        return loss
+
+
+class BCELLWDiceAvg(nn.Module):
+    def __init__(self, w, config):
+        super().__init__()
+        device = torch.device('cuda' if torch.cuda.is_available() and config.gpu else 'cpu')
+        self.bcell = nn.BCEWithLogitsLoss(pos_weight=torch.tensor(w).to(device).unsqueeze(dim=0).unsqueeze(dim=2).unsqueeze(dim=3))
+        self.diceavg = DiceAvgLoss()
+
+    def forward(self, y_true, y_pred):
+        loss = self.bcell(y_true, y_pred) + self.diceavg(y_true, y_pred)
 
         return loss
