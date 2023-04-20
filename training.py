@@ -180,11 +180,11 @@ def train_net_with_validation(config, dataset, train_sampler=None, val_sampler=N
                             drop_last=False,
                             num_workers=config.num_threads)
 
-    optimizer = eval(net_config['optimizer']['name'])(net.parameters(), **net_config['optimizer']['params'])
-    criterion = eval(net_config['loss']['name'])(**net_config['loss']['params'])
+    optimizer = import_class(net_config['optimizer']['name'])(net.parameters(), **net_config['optimizer']['params'])
+    criterion = import_class(net_config['loss']['name'])(**net_config['loss']['params'])
 
     if 'lr_scheduler' in net_config:
-        scheduler = eval(net_config['lr_scheduler']['name'])(optimizer, **net_config['lr_scheduler']['params'])
+        scheduler = import_class(net_config['lr_scheduler']['name'])(optimizer, **net_config['lr_scheduler']['params'])
         scheduler.step(8)
     else:
         scheduler = MockScheduler(optimizer)

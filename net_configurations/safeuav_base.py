@@ -16,4 +16,8 @@ CONFIG = {
         'params': {
         }
     },
+    'lr_scheduler': {
+        'name': 'mock_scheduler.MockScheduler',
+        'params': {}
+    }
 }
