@@ -16,7 +16,6 @@ import tabulator
 import ploting
 from utils import init_config
 import ssl
-import json
 from utils import import_class, print_obj
 
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -112,6 +111,8 @@ def folds_strategy(config):
         checkpoint = None
         if len(checkpoint_paths) > 0:
             checkpoint = torch.load(checkpoint_paths.pop(0))
+        elif config.reuse:
+            checkpoint = torch.load(path.expanduser(config.reuse_path))
         config.fold = fold
         train_sampler = SubsetRandomSampler(train_idx)
         val_sampler = SubsetRandomSampler(val_idx) if val_idx is not None else None
@@ -164,7 +165,8 @@ def test(**kwargs):
 
     if not same_dataset:
         opt.dataset_name = curr_dataset
-        test_only_one(opt)
+        # test_only_one(opt)
+        folds_test(opt)
     elif opt.folds > 1:
         folds_test(opt)
 

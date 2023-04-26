@@ -91,8 +91,9 @@ def train_net(config, dataset, train_sampler=None, checkpoint=None):
     curr_epoch = 0
     if checkpoint is not None:
         net.load_state_dict(checkpoint['model_state_dict'])
-        curr_epoch = checkpoint['epoch'] + 1
-        best_loss = checkpoint['loss']
+        if config.resume:
+            curr_epoch = checkpoint['epoch'] + 1
+            best_loss = checkpoint['loss']
 
     net.to(device=device)
 
@@ -160,8 +161,9 @@ def train_net_with_validation(config, dataset, train_sampler=None, val_sampler=N
     curr_epoch = 0
     if checkpoint is not None:
         net.load_state_dict(checkpoint['model_state_dict'])
-        curr_epoch = checkpoint['epoch'] + 1
-        best_loss = checkpoint['loss']
+        if config.resume:
+            curr_epoch = checkpoint['epoch'] + 1
+            best_loss = checkpoint['loss']
 
     net.to(device=device)
 

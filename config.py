@@ -57,6 +57,10 @@ class TrainConfig(Config):
         # continue or expand last execution
         self.resume = False
 
+        # reuse model for different dataset
+        self.reuse = True
+        self.reuse_path = ''
+
         # wipe execution dir
         self.override = False
 

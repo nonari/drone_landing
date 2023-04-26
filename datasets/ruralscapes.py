@@ -5,11 +5,12 @@ from glob import glob
 import torchvision.transforms
 from PIL import Image
 import importlib
-import torchvision.transforms.functional as t_func
-from torchvision.transforms import InterpolationMode as Interpolation
+from datasets.dataset import augment
+from datasets.uavid import class_names as uavid_class_names
 from config import TrainConfig
 
-from datasets.dataset import prepare_image, adapt_label, adapt_image, label_to_tensor, GenericDataset
+from datasets.dataset import prepare_image, adapt_label, adapt_image, label_to_tensor, GenericDataset, \
+    label_to_tensor_collapse, get_dataset_transform
 
 color_keys = np.asarray([
     [255, 255, 0],
@@ -26,7 +27,7 @@ color_keys = np.asarray([
     [0, 0, 255],
 ])
 
-ruralscapes_classnames = [
+ruralscapes_classnames = np.array([
     'building',
     'land',
     'forest',
@@ -39,7 +40,7 @@ ruralscapes_classnames = [
     'person',
     'haystack',
     'water'
-]
+])
 
 test_ids = ['0051', '0093', '0047', '0056', '0086']
 train_folds = [['0101', '0053', '0089', '0116', '0043'],
@@ -58,55 +59,11 @@ def get_all(paths, ids):
     return all_frames
 
 
-def jitter_hsv(image, hue_shift_limit=0.5,
-               sat_shift_limit=1.,
-               val_shift_limit=1., u=0.5):
-    if np.random.random() < u:
-        trans = torchvision.transforms.ColorJitter(
-            brightness=val_shift_limit,
-            saturation=sat_shift_limit,
-            hue=hue_shift_limit)
-        image = trans(image)
-
-    return image
-
-
-def rand_shift_scale_rotate(image, mask, u=0.5):
-    if np.random.random() < u:
-        size = image.shape[-2:]
-        i, j, h, w = torchvision.transforms.RandomResizedCrop.get_params(image, [0.95, 0.95], [1.0, 1.0])
-        image = t_func.resized_crop(image, i, j, h, w, size, interpolation=Interpolation.BILINEAR)
-        mask = t_func.resized_crop(mask, i, j, h, w, size, interpolation=Interpolation.NEAREST)
-
-    return image, mask
-
-
-def random_hflip(image, mask, u=0.5):
-    if np.random.random() < u:
-        image = t_func.hflip(image)
-        mask = t_func.hflip(mask)
-
-    return image, mask
-
-
-def augment_rural(img, label):
-    img = jitter_hsv(
-        img,
-        hue_shift_limit=.2,
-        sat_shift_limit=.02,
-        val_shift_limit=.06,
-    )
-
-    img, label = rand_shift_scale_rotate(img, label)
-
-    img, label = random_hflip(img, label)
-
-    return img, label
-
-
 class RuralscapesDataset(GenericDataset):
     def __init__(self, config):
         self.config = config
+        self.color_keys = color_keys
+        self.class_names = ruralscapes_classnames
         if not path.exists(config.rural_root):
             raise Exception('Incorrect path for Ruralscapes dataset')
         images_root = path.join(config.rural_root, 'frames')
@@ -127,6 +84,8 @@ class RuralscapesDataset(GenericDataset):
 
         self._prepare_im = prepare_image(t_rural)
         self._prepare_lab = prepare_image(adapt_label(net_config['input_size']))
+        self._label_to_tensor = label_to_tensor
+        self._no_classes = len(self.class_names)
 
     def index(self):
         self.inv_idx.clear()
@@ -156,34 +115,31 @@ class RuralscapesDataset(GenericDataset):
         return folds
 
     def classes(self):
-        return 12
+        return self._no_classes
 
     def classnames(self):
-        return ruralscapes_classnames
+        return self.class_names
 
     def colors(self):
-        return color_keys
+        return self.color_keys
 
     def pred_to_color_mask(self, true, pred):
-        pred_mask = color_keys[pred]
-        true_mask = color_keys[true]
+        pred_mask = self.color_keys[pred]
+        true_mask = self.color_keys[true]
         return true_mask, pred_mask
-
-    def __len__(self):
-        return self._image_paths.__len__()
 
     def __getitem__(self, item):
         tensor_im = self._prepare_im(self._image_paths[item])
         pil_lab = self._prepare_lab(self._label_paths[item])
         if isinstance(self.config, TrainConfig) and self.config._training and self.config.augment:
-            tensor_im, pil_lab = augment_rural(tensor_im, pil_lab)
-        tensor_lab = label_to_tensor(np.asarray(pil_lab), color_keys)
+            tensor_im, pil_lab = augment(tensor_im, pil_lab)
+        tensor_lab = self.label_to_tensor(np.asarray(pil_lab), self.color_keys)
         return tensor_im, tensor_lab
 
 
 class RuralscapesOrigSplit(RuralscapesDataset):
-    def __init__(self, *args):
-        super().__init__(*args)
+    def __init__(self, config):
+        super().__init__(config)
 
     def get_folds(self):
         folds = []
@@ -211,3 +167,30 @@ class RuralscapesOrigSegprop(RuralscapesOrigSplit):
         self._image_paths += image_paths
         self._label_paths += label_paths
         self.index()
+
+
+class RuralscapesOrigToUAVid(RuralscapesOrigSplit):
+    def __init__(self, config):
+        super().__init__(config)
+        assoc = [
+            ('building', 'building'),
+            ('land', 'low veg'),
+            ('forest', 'tree'),
+            ('sky', None),
+            ('fence', 'building'),
+            ('road', 'road'),
+            ('hill', None),
+            ('church', 'building'),
+            ('car', 'static car'),
+            ('person', 'human'),
+            ('haystack', None),
+            ('water', None)
+        ]
+
+        transform_color_key, color_collapse = get_dataset_transform(uavid_class_names, assoc)
+        extended_colors = np.vstack([color_keys, [-1, -1, -1]])
+        dest_colors = extended_colors[transform_color_key]
+        self.color_keys = dest_colors
+        self.class_names = uavid_class_names
+        self._no_classes = len(uavid_class_names)
+        self.label_to_tensor = label_to_tensor_collapse(color_keys, color_collapse)

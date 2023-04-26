@@ -3,8 +3,7 @@ import torch
 from torch.nn.functional import one_hot
 
 from config import TrainConfig
-from datasets.dataset import GenericDataset, prepare_image, adapt_label, adapt_image
-from datasets.ruralscapes import augment_rural
+from datasets.dataset import GenericDataset, prepare_image, adapt_label, adapt_image, augment
 from glob import glob
 from os import path
 
@@ -99,6 +98,6 @@ class UAVid(GenericDataset):
         tensor_im = self._prepare_im(self._image_paths[index])
         pil_lab = self._prepare_lab(self._label_paths[index])
         if isinstance(self._config, TrainConfig) and self._config._training and self._config.augment:
-            tensor_im, pil_lab = augment_rural(tensor_im, pil_lab)
+            tensor_im, pil_lab = augment(tensor_im, pil_lab)
         tensor_lab = label_to_tensor(np.asarray(pil_lab), color_keys)
         return tensor_im, tensor_lab
