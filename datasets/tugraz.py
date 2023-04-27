@@ -105,13 +105,13 @@ def label_transformation(color_keys, new_size, device):
 
 
 class TUGrazDataset(GenericDataset):
-    def __init__(self, options):
-        self.options = options
+    def __init__(self, config):
+        super().__init__(config)
         self.tugraz_images_loc = 'low_res_images'
         self.tugraz_labels_loc = 'low_res_label_images'
         subset = 'training_set'
-        images_root = path.join(options.tugraz_root, subset, self.tugraz_images_loc)
-        labels_root = path.join(options.tugraz_root, subset, f'gt/semantic/{self.tugraz_labels_loc}')
+        images_root = path.join(config.tugraz_root, subset, self.tugraz_images_loc)
+        labels_root = path.join(config.tugraz_root, subset, f'gt/semantic/{self.tugraz_labels_loc}')
 
         image_paths = glob(images_root + '/*.jpg')
         label_paths = glob(labels_root + '/*.png')
@@ -121,18 +121,18 @@ class TUGrazDataset(GenericDataset):
         self._image_paths = np.asarray(image_paths)
         self._label_paths = np.asarray(label_paths)
 
-        net_config = importlib.import_module(f'net_configurations.{options.model_config}').CONFIG
+        net_config = importlib.import_module(f'net_configurations.{config.model_config}').CONFIG
         t_tugraz = adapt_image(net_config['input_size'])
 
         self._prepare_im = prepare_image(t_tugraz)
-        device = torch.device('cuda' if torch.cuda.is_available() and options.gpu else 'cpu')
+        device = torch.device('cuda' if torch.cuda.is_available() and config.gpu else 'cpu')
         self._prepare_lab = prepare_image(label_transformation(
             tugraz_color_keys, net_config['input_size'], device))
 
     def get_folds(self):
-        kfold = KFold(n_splits=self.options.folds, shuffle=True, random_state=self.options.idx_seed)
+        kfold = KFold(n_splits=self.config.folds, shuffle=True, random_state=self.config.idx_seed)
         folds = list(kfold.split(self))
-        if self.options.train:
+        if self.config.train:
             folds_part = [(tr, None) for tr, _ in folds]
         else:
             folds_part = [ts for _, ts in folds]

@@ -56,9 +56,10 @@ class_names = [
 
 class UAVid(GenericDataset):
     def __init__(self, config):
-        self._config = config
+        super().__init__(config)
         if not path.exists(config.uavid_root):
-            raise Exception('Incorrect path for UAVid dataset')
+            pass
+            # raise Exception('Incorrect path for UAVid dataset')
         train_image_paths = glob(path.join(config.uavid_root, 'uavid_train', '*', 'Images', '*'))
         train_label_paths = glob(path.join(config.uavid_root, 'uavid_train', '*', 'Labels', '*'))
         val_image_paths = glob(path.join(config.uavid_root, 'uavid_val', '*', 'Images', '*'))
@@ -75,21 +76,23 @@ class UAVid(GenericDataset):
 
         self._prepare_im = prepare_image(t_rural)
         self._prepare_lab = prepare_image(adapt_label(net_config['input_size']))
+        self._class_names = class_names
+        self._label_to_tensor = label_to_tensor
 
     def classes(self):
-        return 8
+        return len(self._class_names)
 
     def classnames(self):
-        return class_names
+        return self._class_names
 
     def colors(self):
-        return color_keys
+        return self._color_keys
 
     def pred_to_color_mask(self, true, pred):
-        return color_keys[true], color_keys[pred]
+        return self._color_keys[true], self._color_keys[pred]
 
     def get_folds(self):
-        if isinstance(self._config, TrainConfig):
+        if isinstance(self.config, TrainConfig):
             return [(self._train_idx, self._val_idx)]
         else:
             return [self._val_idx]
@@ -97,7 +100,7 @@ class UAVid(GenericDataset):
     def __getitem__(self, index):
         tensor_im = self._prepare_im(self._image_paths[index])
         pil_lab = self._prepare_lab(self._label_paths[index])
-        if isinstance(self._config, TrainConfig) and self._config._training and self._config.augment:
+        if isinstance(self.config, TrainConfig) and self.config._training and self.config.augment:
             tensor_im, pil_lab = augment(tensor_im, pil_lab)
-        tensor_lab = label_to_tensor(np.asarray(pil_lab), color_keys)
+        tensor_lab = self._label_to_tensor(np.asarray(pil_lab), color_keys)
         return tensor_im, tensor_lab

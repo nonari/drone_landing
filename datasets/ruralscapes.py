@@ -6,7 +6,6 @@ import torchvision.transforms
 from PIL import Image
 import importlib
 from datasets.dataset import augment
-from datasets.uavid import class_names as uavid_class_names
 from config import TrainConfig
 
 from datasets.dataset import prepare_image, adapt_label, adapt_image, label_to_tensor, GenericDataset, \
@@ -61,7 +60,7 @@ def get_all(paths, ids):
 
 class RuralscapesDataset(GenericDataset):
     def __init__(self, config):
-        self.config = config
+        super().__init__(config)
         self.color_keys = color_keys
         self.class_names = ruralscapes_classnames
         if not path.exists(config.rural_root):
@@ -169,28 +168,3 @@ class RuralscapesOrigSegprop(RuralscapesOrigSplit):
         self.index()
 
 
-class RuralscapesOrigToUAVid(RuralscapesOrigSplit):
-    def __init__(self, config):
-        super().__init__(config)
-        assoc = [
-            ('building', 'building'),
-            ('land', 'low veg'),
-            ('forest', 'tree'),
-            ('sky', None),
-            ('fence', 'building'),
-            ('road', 'road'),
-            ('hill', None),
-            ('church', 'building'),
-            ('car', 'static car'),
-            ('person', 'human'),
-            ('haystack', None),
-            ('water', None)
-        ]
-
-        transform_color_key, color_collapse = get_dataset_transform(uavid_class_names, assoc)
-        extended_colors = np.vstack([color_keys, [-1, -1, -1]])
-        dest_colors = extended_colors[transform_color_key]
-        self.color_keys = dest_colors
-        self.class_names = uavid_class_names
-        self._no_classes = len(uavid_class_names)
-        self.label_to_tensor = label_to_tensor_collapse(color_keys, color_collapse)

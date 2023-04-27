@@ -155,6 +155,9 @@ def get_dataset_transform(key_dest_classnames, class_assoc):
 
 
 class GenericDataset(Dataset, ABC):
+    def __init__(self, config):
+        self.config = config
+
     def classes(self):
         raise NotImplementedError
 
