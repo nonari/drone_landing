@@ -2,6 +2,7 @@ from torch.utils.data.dataset import T_co
 from config import TrainConfig, TestConfig
 from datasets.ruralscapes import RuralscapesOrigSplit
 from datasets.ruralscapes import color_keys as rural_color_keys
+from datasets.uavid import color_keys as uavid_color_keys
 from datasets.ruralscapes import ruralscapes_classnames
 from datasets.uavid import UAVid
 from datasets.uavid import class_names as uavid_classnames
@@ -28,12 +29,12 @@ class RuralscapesOrigToUAVid(RuralscapesOrigSplit):
         ]
 
         transform_color_key, color_collapse = get_dataset_transform(uavid_classnames, assoc)
-        extended_colors = np.vstack([rural_color_keys, [-1, -1, -1]])
+        extended_colors = np.vstack([uavid_color_keys, [-1, -1, -1]])
         dest_colors = extended_colors[transform_color_key]
         self.color_keys = dest_colors
         self.class_names = uavid_classnames
         self._no_classes = len(uavid_classnames)
-        self.label_to_tensor = label_to_tensor_collapse(rural_color_keys, color_collapse)
+        self._label_to_tensor = label_to_tensor_collapse(rural_color_keys, color_collapse)
 
 
 class UAVidToRuralscapes(UAVid):
@@ -50,20 +51,20 @@ class UAVidToRuralscapes(UAVid):
             ("human", "person"),
         ]
 
-        transform_color_key, color_collapse = get_dataset_transform(uavid_classnames, assoc)
+        transform_color_key, color_collapse = get_dataset_transform(ruralscapes_classnames, assoc)
         extended_colors = np.vstack([rural_color_keys, [-1, -1, -1]])
         dest_colors = extended_colors[transform_color_key]
-        self.color_keys = dest_colors
-        self.class_names = uavid_classnames
-        self._no_classes = len(uavid_classnames)
-        self.label_to_tensor = label_to_tensor_collapse(rural_color_keys, color_collapse)
+        self._color_keys = dest_colors
+        self._class_names = ruralscapes_classnames
+        self._no_classes = len(ruralscapes_classnames)
+        self._label_to_tensor = label_to_tensor_collapse(uavid_color_keys, color_collapse)
 
 
 class UAVid_and_rural(GenericDataset):
     def __init__(self, config):
         super().__init__(config)
         self.max_rural = -1
-        self.uavid = UAVid(config)
+        self.uavid = UAVidToRuralscapes(config)
         self.rural = RuralscapesOrigSplit(config)
 
     def classes(self):
@@ -103,4 +104,4 @@ class UAVid_and_rural(GenericDataset):
         if index <= self.max_rural:
             return self.rural[index]
         else:
-            return self.uavid[index - self.max_rural]
+            return self.uavid[index - self.max_rural - 1]

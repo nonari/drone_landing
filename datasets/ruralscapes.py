@@ -132,7 +132,7 @@ class RuralscapesDataset(GenericDataset):
         pil_lab = self._prepare_lab(self._label_paths[item])
         if isinstance(self.config, TrainConfig) and self.config._training and self.config.augment:
             tensor_im, pil_lab = augment(tensor_im, pil_lab)
-        tensor_lab = self.label_to_tensor(np.asarray(pil_lab), self.color_keys)
+        tensor_lab = self._label_to_tensor(np.asarray(pil_lab), self.color_keys)
         return tensor_im, tensor_lab
 
 

@@ -78,6 +78,7 @@ class UAVid(GenericDataset):
         self._prepare_lab = prepare_image(adapt_label(net_config['input_size']))
         self._class_names = class_names
         self._label_to_tensor = label_to_tensor
+        self._color_keys = color_keys
 
     def classes(self):
         return len(self._class_names)
@@ -102,5 +103,5 @@ class UAVid(GenericDataset):
         pil_lab = self._prepare_lab(self._label_paths[index])
         if isinstance(self.config, TrainConfig) and self.config._training and self.config.augment:
             tensor_im, pil_lab = augment(tensor_im, pil_lab)
-        tensor_lab = self._label_to_tensor(np.asarray(pil_lab), color_keys)
+        tensor_lab = self._label_to_tensor(np.asarray(pil_lab), self._color_keys)
         return tensor_im, tensor_lab
