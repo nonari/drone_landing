@@ -137,7 +137,7 @@ def find_duplicates(classname, classnames):
 def get_dataset_transform(key_dest_classnames, class_assoc):
     dest_classnames = [e[1] for e in class_assoc]
 
-    transform_color_key = [len(key_dest_classnames)] * len(key_dest_classnames)
+    transform_color_key = [len(class_assoc)] * len(key_dest_classnames)
     color_collapse = {}
     seen_dest_classnames = set()
     for idx, c in enumerate(dest_classnames):

@@ -29,7 +29,7 @@ class RuralscapesOrigToUAVid(RuralscapesOrigSplit):
         ]
 
         transform_color_key, color_collapse = get_dataset_transform(uavid_classnames, assoc)
-        extended_colors = np.vstack([uavid_color_keys, [-1, -1, -1]])
+        extended_colors = np.vstack([rural_color_keys, [-1, -1, -1]])
         dest_colors = extended_colors[transform_color_key]
         self.color_keys = dest_colors
         self.class_names = uavid_classnames
@@ -52,7 +52,7 @@ class UAVidToRuralscapes(UAVid):
         ]
 
         transform_color_key, color_collapse = get_dataset_transform(ruralscapes_classnames, assoc)
-        extended_colors = np.vstack([rural_color_keys, [-1, -1, -1]])
+        extended_colors = np.vstack([uavid_color_keys, [-1, -1, -1]])
         dest_colors = extended_colors[transform_color_key]
         self._color_keys = dest_colors
         self._class_names = ruralscapes_classnames
@@ -91,14 +91,20 @@ class UAVid_and_rural(GenericDataset):
             uavid_train = np.array(uavid_folds[0][0]) + self.max_rural + 1
             uavid_val = np.array(uavid_folds[0][1]) + self.max_rural + 1
 
-            return [(np.concatenate([rural_train, uavid_train]), np.concatenate([rural_val, uavid_val]))]
+            train = list(map(lambda x: int(x), np.concatenate([rural_train, uavid_train])))
+            val = list(map(lambda x: int(x), np.concatenate([rural_val, uavid_val])))
+
+            return [(train, val)]
+
         else:
-            rural_train = rural_folds[0]
-            self.max_rural = max(rural_train)
+            rural_test = rural_folds[0]
+            self.max_rural = max(rural_test)
 
-            uavid_train = np.array(uavid_folds[0]) + self.max_rural + 1
+            uavid_test = np.array(uavid_folds[0]) + self.max_rural + 1
 
-            return [np.concatenate([rural_train, uavid_train])]
+            test = list(map(lambda x: int(x), np.concatenate([rural_test, uavid_test])))
+
+            return [test]
 
     def __getitem__(self, index) -> T_co:
         if index <= self.max_rural:
