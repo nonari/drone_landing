@@ -58,8 +58,8 @@ class UAVid(GenericDataset):
     def __init__(self, config):
         super().__init__(config)
         if not path.exists(config.uavid_root):
-            pass
-            # raise Exception('Incorrect path for UAVid dataset')
+            raise Exception('Incorrect path for UAVid dataset')
+
         train_image_paths = glob(path.join(config.uavid_root, 'uavid_train', '*', 'Images', '*'))
         train_label_paths = glob(path.join(config.uavid_root, 'uavid_train', '*', 'Labels', '*'))
         val_image_paths = glob(path.join(config.uavid_root, 'uavid_val', '*', 'Images', '*'))
