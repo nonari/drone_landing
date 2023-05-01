@@ -36,6 +36,14 @@ class RuralscapesOrigToUAVid(RuralscapesOrigSplit):
         self._no_classes = len(uavid_classnames)
         self._label_to_tensor = label_to_tensor_collapse(rural_color_keys, color_collapse)
 
+    def colors(self):
+        return uavid_color_keys
+
+    def pred_to_color_mask(self, true, pred):
+        pred_mask = uavid_color_keys[pred]
+        true_mask = uavid_color_keys[true]
+        return true_mask, pred_mask
+
 
 class UAVidToRuralscapes(UAVid):
     def __init__(self, config):
@@ -58,6 +66,14 @@ class UAVidToRuralscapes(UAVid):
         self._class_names = ruralscapes_classnames
         self._no_classes = len(ruralscapes_classnames)
         self._label_to_tensor = label_to_tensor_collapse(uavid_color_keys, color_collapse)
+
+    def colors(self):
+        return rural_color_keys
+
+    def pred_to_color_mask(self, true, pred):
+        pred_mask = rural_color_keys[pred]
+        true_mask = rural_color_keys[true]
+        return true_mask, pred_mask
 
 
 class UAVid_and_rural(GenericDataset):
