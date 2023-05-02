@@ -132,3 +132,15 @@ class BCELLWDiceAvg(nn.Module):
         loss = self.bcell(y_true, y_pred) + self.diceavg(y_true, y_pred)
 
         return loss
+
+
+class BCELLDiceAvg(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.bcell = nn.BCEWithLogitsLoss()
+        self.diceavg = DiceAvgLoss()
+
+    def forward(self, y_true, y_pred):
+        loss = self.bcell(y_true, y_pred) + self.diceavg(y_true, y_pred)
+
+        return loss
