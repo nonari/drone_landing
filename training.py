@@ -2,6 +2,7 @@ import importlib
 import numpy as np
 from torch.utils.data import DataLoader
 import segmentation_models_pytorch as smp
+from custom_models.unetgpt import UNet as GPTUNet
 import torch
 from torch import nn, optim, cuda
 from os import path, remove
@@ -20,6 +21,8 @@ def configure_net(net_config, classes):
     net_type = net_config['net']['name']
     if net_type == "unet":
         net = smp.Unet(in_channels=3, classes=classes, **net_config['net']['params'])
+    elif net_type == "gptunet":
+        net = GPTUNet(in_channels=3, out_channels=classes, **net_config['net']['params'])
     elif net_type == 'pspnet':
         net = smp.PSPNet(in_channels=3, classes=classes, **net_config['net']['params'])
     elif net_type == 'safeuav':

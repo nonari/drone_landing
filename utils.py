@@ -27,7 +27,7 @@ def estimate_memory_training(model, sample_input, optimizer_type=torch.optim.Ada
     model.to(device)
     b = torch.cuda.memory_allocated(device)
     model_memory = b - a
-    model_input = sample_input.unsqueeze(0).repeat(batch_size, 1)
+    model_input = sample_input.unsqueeze(0).repeat(batch_size, 1, 1, 1)
     output = model(model_input.to(device)).sum()
     c = torch.cuda.memory_allocated(device)
     if use_amp:
