@@ -10,7 +10,7 @@ from tqdm import tqdm
 from shutil import copy
 import custom_metrics
 from mock_scheduler import MockScheduler
-from custom_models import safeuav
+from custom_models import safeuav, attunet
 import custom_models
 from custom_models import losses
 from glob import glob
@@ -27,6 +27,8 @@ def configure_net(net_config, classes):
         net = smp.PSPNet(in_channels=3, classes=classes, **net_config['net']['params'])
     elif net_type == 'safeuav':
         net = safeuav.UNet_MDCB(classes, in_channels=3, **net_config['net']['params'])
+    elif net_type == 'attunet':
+        net = attunet.AttUNet(img_ch=3, output_ch=classes, **net_config['net']['params'])
     else:
         raise Exception(f'Unknown net type: {net_type}')
 

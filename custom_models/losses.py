@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from torch.nn import functional as F
 
 
 def dice_coeff(y_pred, y_true):
@@ -206,3 +207,39 @@ class LovaszSoftmax(nn.Module):
         inputs, targets = self.prob_flatten(inputs, targets)
         losses = self.lovasz_softmax_flat(inputs, targets)
         return losses
+
+
+class PySigmoidFocalLoss(nn.Module):
+    def __init__(self, loss_weight=1.0, gamma=2.0, alpha=0.25, size_average=True, avg_factor=None):
+        super().__init__()
+        self.loss_weight = loss_weight
+        self.gamma = gamma
+        self.alpha = alpha
+        self.size_average = size_average
+        self.avg_factor = avg_factor
+
+    def forward(self, preds, targets):
+        preds_sigmoid = preds.sigmoid()
+        targets = targets.type_as(preds)
+        pt = (1 - preds_sigmoid) * targets + preds_sigmoid * (1 - targets)
+        focal_weight = (self.alpha * targets + (1 - self.alpha) * (1 - targets)) * pt.pow(self.gamma)
+        loss = F.binary_cross_entropy_with_logits(preds, targets, reduction='none') * focal_weight
+
+        if self.avg_factor is None:
+            loss = loss.mean() if self.size_average else loss.sum()
+        else:
+            loss = (loss.sum() / self.avg_factor) if self.size_average else loss.sum()
+        return loss * self.loss_weight
+
+
+class MixedLoss(nn.Module):
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.focal_loss = PySigmoidFocalLoss(**kwargs)
+        self.dice_loss = DiceAvgLoss()
+
+    def forward(self, pred, target):
+        fl = self.focal_loss(pred, target)
+        dl = torch.log(1 - 0.25*torch.clip(self.dice_loss(pred, target), 0, 1))
+        # print(f'focal: {fl},  dice: {dl}')
+        return 2*fl - dl
