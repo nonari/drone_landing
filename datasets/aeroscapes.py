@@ -46,7 +46,7 @@ def label_to_tensor(label, keys):
     label[label == 9] = 7
     label[label == 10] = 8
     sparse = functional.one_hot(torch.tensor(label.astype(int)), num_classes=9)
-    return sparse.movedim(2, 0)
+    return sparse.movedim(2, 0).float()
 
 
 def load_txt(file):
