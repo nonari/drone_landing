@@ -113,12 +113,12 @@ class AttentionBlock(nn.Module):
 
 
 class AttUNet(nn.Module):
-    def __init__(self, img_ch=3, output_ch=1):
+    def __init__(self, img_ch=3, output_ch=1, init_nb=32):
         super(AttUNet, self).__init__()
 
         self.Maxpool = nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
 
-        filters = 32
+        filters = init_nb
         self.Conv1 = ConvBlock(ch_in=img_ch, ch_out=filters)
         self.Conv2 = ConvBlock(ch_in=filters, ch_out=filters*2)
         self.Conv3 = ConvBlock(ch_in=filters*2, ch_out=filters*4)
