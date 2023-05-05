@@ -14,9 +14,10 @@ def dice_coeff(y_pred, y_true):
 
 
 def dice_coeff_multiclass(y_pred, y_true):
-    smooth = 0.1
-    intersection = torch.sum(y_true * y_pred, dim=(0, 2, 3))
-    union = torch.sum(y_true + y_pred, dim=(0, 2, 3))
+    smooth = 1.
+    pred_soft = y_pred.softmax(dim=1)
+    intersection = torch.sum(y_true * pred_soft, dim=(0, 2, 3))
+    union = torch.sum(y_true + pred_soft, dim=(0, 2, 3))
 
     score = torch.mean((2. * intersection + smooth) / (union + smooth))
     return score
@@ -51,7 +52,8 @@ class DiceAvgLoss(nn.Module):
         super().__init__()
 
     def forward(self, y_pred, y_true):
-        return 1 - dice_coeff_multiclass(y_pred, y_true)
+        clipped = torch.clip(dice_coeff_multiclass(y_pred, y_true), 0, 1)
+        return -torch.log((clipped + 1) / 2)
 
 
 class DiceLoss(nn.Module):
