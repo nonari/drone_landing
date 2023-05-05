@@ -176,6 +176,7 @@ class GenericDataset(Dataset, ABC):
 
 class DummyDataset(GenericDataset):
     def __init__(self, config):
+        super().__init__(config)
         self.config = config
         self.color_key = np.array([[0, 0, 0], [255, 0, 0], [255, 255, 255]])
         # self.input_size = importlib.import_module(f'net_configurations.{config.model_config}').CONFIG['input_size']

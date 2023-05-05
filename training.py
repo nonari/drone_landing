@@ -192,7 +192,6 @@ def train_net_with_validation(config, dataset, train_sampler=None, val_sampler=N
 
     if 'lr_scheduler' in net_config:
         scheduler = import_class(net_config['lr_scheduler']['name'])(optimizer, **net_config['lr_scheduler']['params'])
-        scheduler.step(8)
     else:
         scheduler = MockScheduler(optimizer)
     prefix = ''
@@ -200,22 +199,31 @@ def train_net_with_validation(config, dataset, train_sampler=None, val_sampler=N
         prefix = f'Fold {config.fold}, '
 
     for epoch in range(curr_epoch, config.max_epochs):
+        loss_train, acc_train = 0, 0
         net.train()
-        scheduler.step()
         config._training = True
         with tqdm(data_loader, unit="batch") as tq_loader:
-            for image, label in tq_loader:
+            for te_idx, (image, label) in enumerate(tq_loader):
                 tq_loader.set_description(f'{prefix}Epoch {epoch}')
                 optimizer.zero_grad()
                 image, label = image.to(device=device), label.to(device=device)
 
                 prediction = net(image)
                 acc, loss = custom_metrics.calc_acc(prediction, label), criterion(prediction, label)
+                loss_train += loss.item()
+                acc_train += acc
                 loss.backward()
                 optimizer.step()
                 add_data(data, config, epoch, acc, loss.item())
-                tq_loader.set_postfix(loss=loss.item(), acc=acc)
-
+                d = {'avg_loss': loss_train / (te_idx + 1), 'avg_acc': acc_train / (te_idx + 1),
+                     'batch_loss': loss.item(), 'batch_acc': acc}
+                tq_loader.set_postfix(d)
+        loss_train /= data_loader.__len__()
+        acc_train /= data_loader.__len__()
+        if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+            scheduler.step(loss_train)
+        else:
+            scheduler.step()
         save_data(config, data)
         if epoch % config.validation_epochs == 0 and epoch != 0:
             with torch.no_grad():
@@ -224,14 +232,16 @@ def train_net_with_validation(config, dataset, train_sampler=None, val_sampler=N
                 net.eval()
                 loss_val, acc_val = 0, 0
                 with tqdm(val_loader, unit="batch") as tq_loader2:
-                    for image, label in tq_loader2:
+                    for ve_idx, (image, label) in enumerate(tq_loader2):
                         tq_loader2.set_description(f'VALIDATION Fold {prefix}Epoch {epoch}')
                         image, label = image.to(device=device), label.to(device=device)
                         prediction = net(image)
                         acc, loss = custom_metrics.calc_acc(prediction, label), criterion(prediction, label)
                         loss_val += loss.item()
                         acc_val += acc
-                        tq_loader2.set_postfix(loss=loss.item(), acc=acc)
+                        d = {'avg_loss': loss_train / (ve_idx + 1), 'avg_acc': acc_train / (ve_idx + 1),
+                             'batch_loss': loss.item(), 'batch_acc': acc}
+                        tq_loader2.set_postfix(d)
                 loss_val /= val_loader.__len__()
                 acc_val /= val_loader.__len__()
                 add_data(data, config, epoch, acc_val, loss_val, val=True)

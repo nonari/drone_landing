@@ -12,4 +12,8 @@ CONFIG = {
         'name': 'torch.optim.RMSprop',
         'params': {}
     },
+    'lr_scheduler': {
+        'name': 'mock_scheduler.MockScheduler',
+        'params': {}
+    }
 }
