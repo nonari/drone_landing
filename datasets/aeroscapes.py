@@ -34,7 +34,6 @@ aeroscapes_classnames = [
 
 
 def label_to_tensor(label, _):
-    label = label.copy()
     label[label == 4] = 0
     label[label == 5] = 0
     label[label == 11] = 0
@@ -43,7 +42,8 @@ def label_to_tensor(label, _):
     label[label == 8] = 6
     label[label == 9] = 7
     label[label == 10] = 8
-    sparse = functional.one_hot(torch.tensor(label.astype(int)), num_classes=9)
+    label[label == -1] = 0
+    sparse = functional.one_hot(label.squeeze(dim=0).long(), num_classes=9)
     return sparse.movedim(2, 0).float()
 
 
