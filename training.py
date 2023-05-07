@@ -271,18 +271,19 @@ def save_best_epoch(config, epoch, data):
 def check_stop(config, data):
     max_miss = config.stop_after_miss
     prop = 'acc_val' if config.delta > 0 else 'loss_val'
+    comp = np.argmax if config.delta > 0 else np.argmin
     acc_val = data[config.fold][prop]
     if len(acc_val) < max_miss + 1:
         return False
     print(f'Checking Stop: {acc_val}')
-    acc_valid = acc_val[-max_miss - 1:]
-    last_acc = acc_valid[-1]
-    prev_acc = acc_valid[:-1]
-    diffs = list(map(lambda x: last_acc - x, prev_acc))
-    valid = list(map(lambda x: (x * np.sign(config.delta)) < abs(config.delta), diffs))
-    stop = all(valid)
-
-    return stop
+    acc_val = np.flip(np.asarray(acc_val))
+    idx = comp(acc_val)
+    if idx > max_miss:
+        return True
+    else:
+        # TODO implement
+        return False
+    # valid = list(map(lambda x: (x * np.sign(config.delta)) < abs(config.delta), diffs))
 
 
 def remove_all_checkpoints(config):

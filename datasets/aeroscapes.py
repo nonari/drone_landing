@@ -83,8 +83,8 @@ class Aeroscapes(GenericDataset):
         self._image_paths = sorted(image_paths, key=lambda x: path.basename(x)[:-4])
         self._label_paths = sorted(label_paths, key=lambda x: path.basename(x)[:-4])
 
-        self._label_paths = list(map(lambda x: x[1], filter(lambda x: x[0] % 2 == 0, enumerate(self._label_paths))))
-        self._image_paths = list(map(lambda x: x[1], filter(lambda x: x[0] % 2 == 0, enumerate(self._image_paths))))
+        self._label_paths = list(map(lambda x: x[1], filter(lambda x: x[0] % 4 == 0, enumerate(self._label_paths))))
+        self._image_paths = list(map(lambda x: x[1], filter(lambda x: x[0] % 4 == 0, enumerate(self._image_paths))))
 
         self.inv_idx = {}
         self.index()

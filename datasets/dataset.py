@@ -73,7 +73,6 @@ def label_to_tensor(label, keys):
 
     # Church to building
     one_ch[one_ch == one_key[7]] = one_key[0]
-    one_ch[one_ch == one_key[7]] = one_key[2]
 
     sparse = (one_key[:, None, None] == one_ch).float()
     return sparse
@@ -81,18 +80,29 @@ def label_to_tensor(label, keys):
 
 def label_to_tensor_collapse(orig_color_keys, collapse_colors):
     def f(label, dest_color_keys):
-        v = np.asarray([256 * 256, 256, 1])
-        orig_one_key = np.sum(orig_color_keys * v, axis=1)
-        dest_one_key = np.sum(dest_color_keys * v, axis=1)
+        v = torch.tensor([256 * 256, 256, 1])
+        orig_one_key = (torch.tensor(orig_color_keys) * v).sum(dim=1)
+        dest_one_key = (torch.tensor(dest_color_keys) * v).sum(dim=1)
 
-        one_ch = np.sum(label * v[None, None], axis=2)
+        one_ch = (label * v[:, None, None]).sum(dim=0)
 
         for key, value in collapse_colors.items():
             for i in value:
                 one_ch[one_ch == orig_one_key[i]] = orig_one_key[key]
 
-        sparse = np.equal(dest_one_key[None, None], one_ch[..., None]).astype(np.float32)
-        return torch.tensor(sparse).movedim(2, 0)
+        sparse = (dest_one_key[:, None, None] == one_ch).float()
+        return sparse
+    return f
+
+
+def sc_to_tensor_collapse(collapse_colors):
+    def f(label, dest_class_keys):
+        for key, value in collapse_colors.items():
+            for i in value:
+                label[label == i] = key
+
+        sparse = (label == torch.tensor(dest_class_keys)[:, None, None]).float()
+        return sparse
     return f
 
 

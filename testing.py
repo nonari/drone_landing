@@ -77,7 +77,7 @@ def plot_training_charts(config, device):
     epoch = data[config.fold]['epoch']
     tacc = np.asarray(data[config.fold]['acc'])
     tacc = tacc.reshape((epoch + 1, -1)).mean(axis=1)
-    loss = np.asarray(data[config.fold]['loss'])
+    loss = np.asarray(data[config.fold]['loss']).clip(0, 2)
     loss = loss.reshape((epoch + 1, -1)).mean(axis=1)
     epochs = np.arange(0, epoch + 1)
     fig, ax1 = plt.subplots()
@@ -94,7 +94,7 @@ def plot_training_charts(config, device):
     ax2.tick_params(axis='y', labelcolor=color)
     if 'acc_val' in data[config.fold]:
         acc_val = data[config.fold]['acc_val']
-        loss_val = np.clip(data[config.fold]['loss_val'], 0, 1)
+        loss_val = np.clip(data[config.fold]['loss_val'], -np.inf, 2)
         x_points = np.arange(len(acc_val)*config.validation_epochs, step=config.validation_epochs)
         ax1.scatter(x_points, acc_val, c='red', label='Val acc')
         ax2.scatter(x_points, loss_val, c='blue', label='Val loss')
