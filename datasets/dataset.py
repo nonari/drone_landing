@@ -17,25 +17,29 @@ imagenet_norm = {'mean': [0.485, 0.456, 0.406],
 imagenet_denorm = {'mean': [-0.485 / 0.229, -0.456 / 0.224, -0.406 / 0.225],
                    'std': [1 / 0.229, 1 / 0.224, 1 / 0.225]}
 
+
 def jitter_hsv(image, hue_shift_limit=0.5,
                sat_shift_limit=1.,
                val_shift_limit=1., u=0.5):
-    if np.random.random() < u:
-        trans = torchvision.transforms.ColorJitter(
-            brightness=val_shift_limit,
-            saturation=sat_shift_limit,
-            hue=hue_shift_limit)
-        image = trans(image)
+    trans = torchvision.transforms.ColorJitter(
+        brightness=val_shift_limit,
+        saturation=sat_shift_limit,
+        hue=hue_shift_limit)
+    image = trans(image)
 
     return image
 
 
-def rand_shift_scale_rotate(image, mask, u=0.5):
-    if np.random.random() < u:
-        size = image.shape[-2:]
-        i, j, h, w = torchvision.transforms.RandomResizedCrop.get_params(image, [0.95, 0.95], [1.0, 1.0])
-        image = t_func.resized_crop(image, i, j, h, w, size, interpolation=Interpolation.BILINEAR)
-        mask = t_func.resized_crop(mask, i, j, h, w, size, interpolation=Interpolation.NEAREST)
+def rand_shift_scale_rotate(image, mask):
+    size = image.shape[-2:]
+    ratio = image.shape[2] / image.shape[1]
+    i, j, h, w = torchvision.transforms.RandomResizedCrop.get_params(image, [0.9, 1.], [ratio-0.1, ratio+0.1])
+    image = t_func.resized_crop(image, i, j, h, w, size, interpolation=Interpolation.BILINEAR)
+    mask = t_func.resized_crop(mask, i, j, h, w, size, interpolation=Interpolation.NEAREST)
+
+    angle = ((torch.rand(1) - 0.5) * 10).item()
+    image = t_func.rotate(image, angle, interpolation=InterpolationMode.BILINEAR, fill=[0])
+    mask = t_func.rotate(mask, angle, interpolation=InterpolationMode.BILINEAR, fill=[-1])
 
     return image, mask
 
@@ -49,30 +53,30 @@ def random_hflip(image, mask, u=0.5):
 
 
 def augment(img, label):
-    img = jitter_hsv(
-        img,
-        hue_shift_limit=.2,
-        sat_shift_limit=.02,
-        val_shift_limit=.06,
-    )
+    # img = jitter_hsv(
+    #     img,
+    #     hue_shift_limit=.9,
+    #     sat_shift_limit=.0,
+    #     val_shift_limit=.9,
+    # )
 
     img, label = rand_shift_scale_rotate(img, label)
-
     img, label = random_hflip(img, label)
 
     return img, label
 
+
 def label_to_tensor(label, keys):
-    v = np.asarray([256 * 256, 256, 1])
-    one_key = np.sum(keys * v, axis=1)
-    one_ch = np.sum(label * v[None, None], axis=2)
+    v = torch.tensor([256 * 256, 256, 1])
+    one_key = (torch.tensor(keys) * v).sum(dim=1)
+    one_ch = (label * v[:, None, None]).sum(dim=0)
 
     # Church to building
     one_ch[one_ch == one_key[7]] = one_key[0]
     one_ch[one_ch == one_key[7]] = one_key[2]
 
-    sparse = np.equal(one_key[None, None], one_ch[..., None]).astype(np.float32)
-    return torch.tensor(sparse).movedim(2, 0)
+    sparse = (one_key[:, None, None] == one_ch).float()
+    return sparse
 
 
 def label_to_tensor_collapse(orig_color_keys, collapse_colors):
@@ -105,7 +109,8 @@ def prepare_image(transformation):
 def adapt_label(new_size):
     def f(label):
         lab_res = label.resize(new_size[::-1], Image.NEAREST)
-        return lab_res
+        tensor_lab = (torchvision.transforms.ToTensor()(lab_res) * 255).int()
+        return tensor_lab
 
     return f
 
@@ -157,21 +162,32 @@ def get_dataset_transform(key_dest_classnames, class_assoc):
 class GenericDataset(Dataset, ABC):
     def __init__(self, config):
         self.config = config
+        self._prepare_image = prepare_image(adapt_image(config.net_config['input_size']))
+        self._prepare_label = prepare_image(adapt_label(config.net_config['input_size']))
+        self._augment = augment
 
     def classes(self):
-        raise NotImplementedError
+        return len(self._class_names)
 
     def classnames(self):
-        raise NotImplementedError
+        return self._class_names
 
     def colors(self):
-        raise NotImplementedError
+        return self._color_keys
 
     def pred_to_color_mask(self, true, pred):
-        raise NotImplementedError
+        return self._color_keys[true], self._color_keys[pred]
 
     def get_folds(self):
         raise NotImplementedError
+
+    def __getitem__(self, item):
+        tensor_im = self._prepare_image(self._image_paths[item])
+        rgb_lab = self._prepare_label(self._label_paths[item])
+        if isinstance(self.config, TrainConfig) and self.config._training and self.config.augment:
+            tensor_im, rgb_lab = self._augment(tensor_im, rgb_lab)
+        tensor_lab = self._label_to_tensor(rgb_lab, self._color_keys)
+        return tensor_im, tensor_lab
 
 
 class DummyDataset(GenericDataset):

@@ -3,11 +3,9 @@ from torch.nn import functional
 import torch
 from os import path
 from glob import glob
-from PIL import Image
-import importlib
 from config import TrainConfig
 
-from datasets.dataset import augment, adapt_image, GenericDataset, prepare_image, adapt_label
+from datasets.dataset import GenericDataset
 
 aeroscapes_color = np.asarray([
     [0, 0, 0],
@@ -35,7 +33,7 @@ aeroscapes_classnames = [
 ]
 
 
-def label_to_tensor(label, keys):
+def label_to_tensor(label, _):
     label = label.copy()
     label[label == 4] = 0
     label[label == 5] = 0
@@ -68,7 +66,10 @@ class Aeroscapes(GenericDataset):
         super().__init__(config)
         if not path.exists(config.aeroscapes_root):
             raise Exception('Incorrect path for Aeroscapes dataset')
-        self.color_keys = aeroscapes_color
+
+        self._color_keys = aeroscapes_color
+        self._class_names = aeroscapes_classnames
+
         images_root = path.join(config.aeroscapes_root, 'JPEGImages')
         labels_root = path.join(config.aeroscapes_root, 'SegmentationClass')
         train_set_path = path.join(config.aeroscapes_root, 'ImageSets', 'trn.txt')
@@ -88,13 +89,7 @@ class Aeroscapes(GenericDataset):
         self.inv_idx = {}
         self.index()
 
-        net_config = config.net_config
-        t_rural = adapt_image(net_config['input_size'])
-
-        self._prepare_im = prepare_image(t_rural)
-        self._prepare_lab = prepare_image(adapt_label(net_config['input_size']))
         self._label_to_tensor = label_to_tensor
-        self._no_classes = len(aeroscapes_classnames)
 
     def index(self):
         self.inv_idx.clear()
@@ -104,20 +99,6 @@ class Aeroscapes(GenericDataset):
     def p_to_i(self, p):
         return [self.inv_idx[k] for k in p]
 
-    def classes(self):
-        return self._no_classes
-
-    def classnames(self):
-        return aeroscapes_classnames
-
-    def colors(self):
-        return aeroscapes_color
-
-    def pred_to_color_mask(self, true, pred):
-        pred_mask = aeroscapes_color[pred]
-        true_mask = aeroscapes_color[true]
-        return true_mask, pred_mask
-
     def get_folds(self):
         train_imgs = get_all(self._image_paths, self._train_ids)
         val_imgs = get_all(self._image_paths, self._val_ids)
@@ -125,15 +106,3 @@ class Aeroscapes(GenericDataset):
             return [(self.p_to_i(train_imgs), self.p_to_i(val_imgs))]
         else:
             return [self.p_to_i(val_imgs)]
-
-    def __len__(self):
-        return self._image_paths.__len__()
-
-    def __getitem__(self, item):
-        tensor_im = self._prepare_im(self._image_paths[item])
-        pil_lab = self._prepare_lab(self._label_paths[item])
-        if isinstance(self.config, TrainConfig) and self.config._training and self.config.augment:
-            tensor_im, pil_lab = augment(tensor_im, pil_lab)
-        tensor_lab = self._label_to_tensor(np.asarray(pil_lab), self.color_keys)
-        return tensor_im, tensor_lab
-

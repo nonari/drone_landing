@@ -3,20 +3,21 @@ import torch
 from torch.nn.functional import one_hot
 
 from config import TrainConfig
-from datasets.dataset import GenericDataset, prepare_image, adapt_label, adapt_image, augment
+from datasets.dataset import GenericDataset
 from glob import glob
 from os import path
 
 
 def label_to_tensor(label, keys):
-    one_key = np.sum(np.left_shift(keys, [0, 8, 16]), axis=1)
-    one_ch = np.sum(np.left_shift(label, [0, 8, 16]), axis=2)
+    v = torch.tensor([256 * 256, 256, 1])
+    one_key = (torch.tensor(keys) * v).sum(dim=1)
+    one_ch = (label * v[:, None, None]).sum(dim=0)
 
     # Moving car to static car
     one_ch[one_ch == one_key[6]] = one_key[5]
 
-    sparse = np.equal(one_key[None, None], one_ch[..., None]).astype(np.float32)
-    return torch.tensor(sparse).movedim(2, 0)
+    sparse = (one_key[:, None, None] == one_ch).float()
+    return sparse
 
 
 # SLOW METHOD
@@ -71,37 +72,12 @@ class UAVid(GenericDataset):
         self._train_idx = [i for i in range(train_len)]
         self._val_idx = [i for i in range(train_len, val_len + train_len)]
 
-        net_config = config.net_config
-        t_rural = adapt_image(net_config['input_size'])
-
-        self._prepare_im = prepare_image(t_rural)
-        self._prepare_lab = prepare_image(adapt_label(net_config['input_size']))
         self._class_names = class_names
-        self._label_to_tensor = label_to_tensor
         self._color_keys = color_keys
-
-    def classes(self):
-        return len(self._class_names)
-
-    def classnames(self):
-        return self._class_names
-
-    def colors(self):
-        return self._color_keys
-
-    def pred_to_color_mask(self, true, pred):
-        return self._color_keys[true], self._color_keys[pred]
+        self._label_to_tensor = label_to_tensor
 
     def get_folds(self):
         if isinstance(self.config, TrainConfig):
             return [(self._train_idx, self._val_idx)]
         else:
             return [self._val_idx]
-
-    def __getitem__(self, index):
-        tensor_im = self._prepare_im(self._image_paths[index])
-        pil_lab = self._prepare_lab(self._label_paths[index])
-        if isinstance(self.config, TrainConfig) and self.config._training and self.config.augment:
-            tensor_im, pil_lab = augment(tensor_im, pil_lab)
-        tensor_lab = self._label_to_tensor(np.asarray(pil_lab), self._color_keys)
-        return tensor_im, tensor_lab

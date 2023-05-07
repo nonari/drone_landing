@@ -2,14 +2,9 @@ import numpy as np
 from os import path
 from glob import glob
 
-import torchvision.transforms
-from PIL import Image
-import importlib
-from datasets.dataset import augment
 from config import TrainConfig
 
-from datasets.dataset import prepare_image, adapt_label, adapt_image, label_to_tensor, GenericDataset, \
-    label_to_tensor_collapse, get_dataset_transform
+from datasets.dataset import label_to_tensor, GenericDataset
 
 color_keys = np.asarray([
     [255, 255, 0],
@@ -61,8 +56,8 @@ def get_all(paths, ids):
 class RuralscapesDataset(GenericDataset):
     def __init__(self, config):
         super().__init__(config)
-        self.color_keys = color_keys
-        self.class_names = ruralscapes_classnames
+        self._color_keys = color_keys
+        self._class_names = ruralscapes_classnames
         if not path.exists(config.rural_root):
             raise Exception('Incorrect path for Ruralscapes dataset')
         images_root = path.join(config.rural_root, 'frames')
@@ -78,13 +73,7 @@ class RuralscapesDataset(GenericDataset):
         self.inv_idx = {}
         self.index()
 
-        net_config = config.net_config
-        t_rural = adapt_image(net_config['input_size'])
-
-        self._prepare_im = prepare_image(t_rural)
-        self._prepare_lab = prepare_image(adapt_label(net_config['input_size']))
         self._label_to_tensor = label_to_tensor
-        self._no_classes = len(self.class_names)
 
     def index(self):
         self.inv_idx.clear()
@@ -112,28 +101,6 @@ class RuralscapesDataset(GenericDataset):
             folds.append((self.p_to_i(fold_test)))
             folds.append((self.p_to_i(fold_test)))
         return folds
-
-    def classes(self):
-        return self._no_classes
-
-    def classnames(self):
-        return self.class_names
-
-    def colors(self):
-        return self.color_keys
-
-    def pred_to_color_mask(self, true, pred):
-        pred_mask = self.color_keys[pred]
-        true_mask = self.color_keys[true]
-        return true_mask, pred_mask
-
-    def __getitem__(self, item):
-        tensor_im = self._prepare_im(self._image_paths[item])
-        pil_lab = self._prepare_lab(self._label_paths[item])
-        if isinstance(self.config, TrainConfig) and self.config._training and self.config.augment:
-            tensor_im, pil_lab = augment(tensor_im, pil_lab)
-        tensor_lab = self._label_to_tensor(np.asarray(pil_lab), self.color_keys)
-        return tensor_im, tensor_lab
 
 
 class RuralscapesOrigSplit(RuralscapesDataset):
@@ -166,5 +133,3 @@ class RuralscapesOrigSegprop(RuralscapesOrigSplit):
         self._image_paths += image_paths
         self._label_paths += label_paths
         self.index()
-
-

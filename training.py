@@ -215,14 +215,12 @@ def train_net_with_validation(config, dataset, train_sampler=None, val_sampler=N
                 loss.backward()
                 optimizer.step()
                 add_data(data, config, epoch, acc, loss.item())
-                d = {'avg_loss': loss_train / (te_idx + 1), 'avg_acc': acc_train / (te_idx + 1),
-                     'batch_loss': loss.item(), 'batch_acc': acc}
+                d = {'e_loss': loss_train / (te_idx + 1), 'e_acc': acc_train / (te_idx + 1),
+                     'b_loss': loss.item(), 'b_acc': acc}
                 tq_loader.set_postfix(d)
         loss_train /= data_loader.__len__()
         acc_train /= data_loader.__len__()
-        if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-            scheduler.step(loss_train)
-        else:
+        if not isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
             scheduler.step()
         save_data(config, data)
         if epoch % config.validation_epochs == 0 and epoch != 0:
@@ -239,11 +237,13 @@ def train_net_with_validation(config, dataset, train_sampler=None, val_sampler=N
                         acc, loss = custom_metrics.calc_acc(prediction, label), criterion(prediction, label)
                         loss_val += loss.item()
                         acc_val += acc
-                        d = {'avg_loss': loss_train / (ve_idx + 1), 'avg_acc': acc_train / (ve_idx + 1),
-                             'batch_loss': loss.item(), 'batch_acc': acc}
+                        d = {'e_loss': loss_val / (ve_idx + 1), 'e_acc': acc_val / (ve_idx + 1),
+                             'b_loss': loss.item(), 'b_acc': acc}
                         tq_loader2.set_postfix(d)
                 loss_val /= val_loader.__len__()
                 acc_val /= val_loader.__len__()
+                if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                    scheduler.step(loss_val)
                 add_data(data, config, epoch, acc_val, loss_val, val=True)
                 stop = check_stop(config, data)
                 save_data(config, data)
