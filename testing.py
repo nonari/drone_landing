@@ -4,6 +4,7 @@ from sklearn import metrics
 from torchvision import transforms
 from torch.utils.data.dataloader import DataLoader
 from torch import cuda
+from time import time
 import importlib
 from os import path
 from matplotlib import pyplot as plt
@@ -14,6 +15,7 @@ import matplotlib.patches as mpatch
 
 
 def test_net(config, dataset, fold_info, sampler=None):
+    torch.set_grad_enabled(False)
     device = torch.device('cuda' if cuda.is_available() and config.gpu else 'cpu')
     net = configure_net(config.net_config, dataset.classes())
 
@@ -29,13 +31,18 @@ def test_net(config, dataset, fold_info, sampler=None):
     acc, jcc, pre, f1 = 0, [], [], []
     labels = np.arange(0, dataset.classes())
     conf = np.zeros((dataset.classes(), dataset.classes()))
+    total_time = 0
     for idx, (image, label) in enumerate(data_loader):
         if not config.validation_stats and not config.generate_images:
             break
 
         image = image.to(device)
         label = label.to(device)
+        t0 = time()
         prediction = net(image)
+        t1 = time()
+        total_time += t1 - t0
+
         # prediction = torch.rand((1, np.random.randint(0, 25), 704, 1024))
         pred_label = prediction.argmax(dim=1).squeeze().detach().cpu().numpy().astype(np.uint)
         true_label = label.argmax(dim=1).squeeze().detach().cpu().numpy().astype(np.uint)
@@ -55,6 +62,8 @@ def test_net(config, dataset, fold_info, sampler=None):
             conf += metrics.confusion_matrix(true_label, pred_label, labels=labels)
 
     fold_results = {}
+    inference_time = total_time / data_loader.__len__()
+    print(f'Avg. inference time: {inference_time} s')
     if config.validation_stats:
         num_samples = len(data_loader)
         acc /= num_samples
