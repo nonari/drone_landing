@@ -6,6 +6,7 @@ import asyncio
 import threading
 
 import matplotlib.pyplot as plt
+import skimage.filters
 from skimage import morphology, color, feature, registration, measure, transform
 from skimage import draw as skdraw
 import cv2 as cv
@@ -113,7 +114,11 @@ def pad_to(im, size):
     oh, ow = im.shape[:2]
     dh = max(sh - oh, 0)
     dw = max(sw - ow, 0)
-    padded_im = np.pad(im, ((0, dh), (0, dw), (0, 0)), constant_values=0)
+    if len(im.shape) == 3:
+        padded_im = np.pad(im, ((0, dh), (0, dw), (0, 0)), constant_values=0)
+    else:
+        padded_im = np.pad(im, ((0, dh), (0, dw)), constant_values=0)
+
     return padded_im
 
 
@@ -140,12 +145,74 @@ def cv_merge(im1, im2):
 
 
 def cv_warp(ori_im, dst_im, h_mat):
-    width = ori_im.shape[1] + dst_im.shape[1]
-    heigh = ori_im.shape[0] + dst_im.shape[0]
+    width = ori_im.shape[1] + 100
+    heigh = ori_im.shape[0] + 100
     warped_im = cv.warpPerspective(ori_im, h_mat, (width, heigh))
     # warped_im[:dst_im.shape[0], :dst_im.shape[1]] = dst_im
 
     return warped_im
+
+
+def flow_to_color(flow):
+    # magnitude, angle = cv.cartToPolar(flow[..., 0], flow[..., 1])
+    x, y = flow[:, :, 0], flow[:, :, 1]
+    magnitude = np.sqrt(x ** 2 + y ** 2)
+    angle = np.arctan2(y, x)
+    mask = np.zeros((*flow.shape[:2], 3))
+    mask[..., 1] = 255
+    mask[..., 0] = angle * 180 / np.pi / 2
+    mask[..., 2] = cv.normalize(magnitude, None, 0, 255, cv.NORM_MINMAX)
+
+    rgb = cv.cvtColor(mask.astype(np.uint8), cv.COLOR_HSV2BGR)
+
+    return rgb
+
+
+def optical_flowb(im1, im2):
+    im1_gray = to_uint8(color.rgb2gray(im1))
+    im2_gray = to_uint8(color.rgb2gray(im2))
+    im1_gray, im2_gray = pad_imgs(im1_gray, im2_gray)
+    h, w = im1_gray.shape
+    p0 = np.array([(a, b) for a in range(w) for b in range(h)]).astype(np.float32)
+    p0int = p0.astype(int)
+
+    p1, _, err = cv.calcOpticalFlowPyrLK(im1_gray, im2_gray, p0, None)
+    p1[:, 0] = np.clip(p1[:, 0], 0, w - 1)
+    p1[:, 1] = np.clip(p1[:, 1], 0, h - 1)
+    p1 = p1.astype(int)
+
+    moved = np.sum(np.abs(p0 - p1), axis=1) > 2
+    shift = p0 - p1
+    directions = np.arctan2(shift[:, 1], shift[:, 0])
+    directions = ((directions + np.pi) / (2 * np.pi))
+    valid = directions[moved]
+    frame = np.zeros((im2_gray.shape[0], im2_gray.shape[1], 3))
+    frame[p1[moved][:, 1], p1[moved][:, 0], 0] = valid
+    frame[p1[moved][:, 1], p1[moved][:, 0], 1] = 0.5
+    frame[p1[moved][:, 1], p1[moved][:, 0], 2] = 0.5
+    # frame[p0int[moved][:, 1], p0int[moved][:, 0]] = 0, 1, 0
+    frame = (color.hsv2rgb(frame) * 255).astype(np.uint8)
+    return frame
+
+
+def optical_flow(im1, im2):
+    im1_gray = color.rgb2gray(im1)
+    im2_gray = color.rgb2gray(im2)
+    im1_gray, im2_gray = pad_imgs(im1_gray, im2_gray)
+    flow = cv.calcOpticalFlowFarneback(
+        im1_gray, im2_gray, None, 0.5, 3, 15, 3, 5, 1.2, 0)
+
+    return flow
+
+
+def detect_movement(im1, im2):
+    im1_gray = color.rgb2gray(im1)
+    im2_gray = color.rgb2gray(im2)
+    im1_fil = skimage.filters.gaussian(im1_gray, sigma=2)
+    im2_fil = skimage.filters.gaussian(im2_gray, sigma=2)
+    im1_gray, im2_gray = pad_imgs(im1_fil, im2_fil)
+    plt.imshow(np.abs(im1_gray - im2_gray))
+    plt.show()
 
 
 plt.figure(dpi=1200)
@@ -162,7 +229,7 @@ def main():
     # plt.imshow(mask)
     # plt.show()
     p0 = clean_points_in_rois(p0, [r])
-    for curr_frame, curr_roi in seq[5:15]:
+    for curr_frame, curr_roi in seq[5:10]:
         curr_gray = color.rgb2gray(curr_frame)
         p1 = cv_optical_flow_lk(old_gray, curr_gray, p0)
         key_p0 = [cv.KeyPoint(i[1], i[0], 1) for i in p0]
@@ -175,18 +242,23 @@ def main():
         h_mat = cv_find_homography(p0, p1)
         warped_old = cv_warp(old_frame, curr_frame, h_mat)
         merged_im = cv_merge(warped_old, curr_frame)
+        # flow = optical_flow(warped_old, curr_frame)
+        # flow_im = flow_to_color(flow)
         mask = points_to_mask(p1, SIZE[::-1], mask)
+        detect_movement(warped_old, curr_frame)
+
         drawn_im = draw_mask(curr_frame, mask)
         plt.imshow(merged_im)
         plt.show()
         plt.imshow(matched)
         plt.show()
+        # plt.imshow(flow)
+        # plt.show()
         buff.push(drawn_im)
         old_frame = curr_frame
         old_gray = curr_gray
         p0 = find_corners(old_gray)
         p0 = clean_points_in_rois(p0, [curr_roi])
-
 
     buff.close()
 
