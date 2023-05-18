@@ -8,9 +8,11 @@ from glob import glob
 from matplotlib import pyplot as plt
 
 f = glob('/home/nonari/Documentos/Dataset_UAV123_10fps/UAV123_10fps/data_seq/UAV123_10fps/bike1/*')
+f = sorted(f)
 
 unet = UNet_MDCB(classes=9)
-model = torch.load('/home/nonari/PycharmProjects/drone_landing/executions/rural_by_uavid/executions/rural_with_uavid/models/0', map_location='cpu')
+# model = torch.load('/home/nonari/PycharmProjects/drone_landing/executions/rural_by_uavid/executions/rural_with_uavid/models/0', map_location='cpu')
+model = torch.load('/home/nonari/PycharmProjects/drone_landing/executions/aero_w_all/executions/aero_with_both/models/0', map_location='cpu')
 
 unet.load_state_dict(model['model_state_dict'])
 

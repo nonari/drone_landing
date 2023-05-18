@@ -12,6 +12,8 @@ from skimage import draw as skdraw
 import cv2 as cv
 from PIL import Image
 import numpy as np
+from skimage.morphology import dilation, disk
+from skimage.filters import threshold_otsu
 from tracking.Utils import FramesSequenceUAV123, BlockingBuffer, anim
 
 dataset_root = path.expanduser('~/Documentos/Dataset_UAV123_10fps')
@@ -145,8 +147,8 @@ def cv_merge(im1, im2):
 
 
 def cv_warp(ori_im, dst_im, h_mat):
-    width = ori_im.shape[1] + 100
-    heigh = ori_im.shape[0] + 100
+    width = ori_im.shape[1]
+    heigh = ori_im.shape[0]
     warped_im = cv.warpPerspective(ori_im, h_mat, (width, heigh))
     # warped_im[:dst_im.shape[0], :dst_im.shape[1]] = dst_im
 
@@ -200,9 +202,22 @@ def optical_flow(im1, im2):
     im2_gray = color.rgb2gray(im2)
     im1_gray, im2_gray = pad_imgs(im1_gray, im2_gray)
     flow = cv.calcOpticalFlowFarneback(
-        im1_gray, im2_gray, None, 0.5, 3, 15, 3, 5, 1.2, 0)
+        im1_gray, im2_gray, None, 0.5, 5, 25, 3, 5, 1.2, 0)
 
     return flow
+
+
+def crop_warped(matrix, size, im1, im2):
+    h, w = size
+    coords = np.array([[0, 0, 1], [0, h, 1], [w, h, 1], [w, 0, 1]]).T
+    coords = np.dot(matrix, coords).astype(int)
+    max_x_left = np.clip(max(coords[0, 0], coords[0, 1]), 0, w)
+    min_x_right = np.clip(min(coords[0, 2], coords[0, 3]), 0, w)
+    min_y_bot = np.clip(min(coords[1, 1], coords[1, 2]), 0, h)
+    max_y_top = np.clip(max(coords[1, 3], coords[1, 0]), 0, h)
+    crop1 = im1[max_y_top:min_y_bot, max_x_left:min_x_right]
+    crop2 = im2[max_y_top:min_y_bot, max_x_left:min_x_right]
+    return crop1, crop2, (max_y_top, min_y_bot, max_x_left, min_x_right)
 
 
 def detect_movement(im1, im2):
@@ -211,7 +226,18 @@ def detect_movement(im1, im2):
     im1_fil = skimage.filters.gaussian(im1_gray, sigma=2)
     im2_fil = skimage.filters.gaussian(im2_gray, sigma=2)
     im1_gray, im2_gray = pad_imgs(im1_fil, im2_fil)
-    plt.imshow(np.abs(im1_gray - im2_gray))
+
+    merged_movement = np.abs(im1_gray - im2_gray)
+    border = np.zeros(im1_gray.shape)
+    border[im1_gray == 0] = 1
+    border = dilation(border, selem=disk(25))
+    merged_movement[border == 1] = 0
+    t = threshold_otsu(merged_movement)
+    merged_movement[merged_movement < t*0.7] = 0
+    merged_movement[merged_movement > 0] = 1
+    merged_movement = dilation(merged_movement, selem=disk(3))
+
+    plt.imshow(merged_movement)
     plt.show()
 
 
@@ -242,8 +268,9 @@ def main():
         h_mat = cv_find_homography(p0, p1)
         warped_old = cv_warp(old_frame, curr_frame, h_mat)
         merged_im = cv_merge(warped_old, curr_frame)
-        # flow = optical_flow(warped_old, curr_frame)
-        # flow_im = flow_to_color(flow)
+        # crop_old, crop_curr, cc = crop_warped(h_mat, warped_old.shape[:2], warped_old, curr_frame)
+        flow = optical_flow(warped_old, curr_frame)
+        flow_im = flow_to_color(flow)
         mask = points_to_mask(p1, SIZE[::-1], mask)
         detect_movement(warped_old, curr_frame)
 
@@ -252,8 +279,8 @@ def main():
         plt.show()
         plt.imshow(matched)
         plt.show()
-        # plt.imshow(flow)
-        # plt.show()
+        plt.imshow(flow_im)
+        plt.show()
         buff.push(drawn_im)
         old_frame = curr_frame
         old_gray = curr_gray
