@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from torchvision.transforms import transforms, InterpolationMode
 import skimage.filters
 import torch
-from skimage import morphology, color, feature, registration, measure, transform
+from skimage import morphology, color, feature, registration, measure, transform, draw
 from skimage import draw as skdraw
 import cv2 as cv
 from PIL import Image
@@ -276,30 +276,58 @@ def detect_objects(old_frame, curr_frame, movement, labels):
     p1 = cv_optical_flow_lk(old_frame, curr_frame, p0)
     cc_mov = measure.label(person_moving)
     mov_props = measure.regionprops(cc_mov)
-    flat_idx = np.ravel_multi_index((p0[:, 0], p0[:, 1]), movement.shape)
+    flat_idx = np.ravel_multi_index((p0[:, 0].astype(int), p0[:, 1].astype(int)), movement.shape)
     cc_mov_flat = cc_mov.flatten()
+    extensions = []
     for reg in mov_props:
-        if reg.area < 100:
+        if reg.area < 200:
             continue
         yt, xl, yb, xr = reg.bbox
-        mov_points = np.where(cc_mov_flat == reg.label)
+        mov_points = np.where(cc_mov_flat == reg.label)[0]
         object_points = []
-        for idx, _ in enumerate(flat_idx):
-            if idx in mov_points:
+        for idx, fidx in enumerate(flat_idx):
+            if fidx in mov_points:
                 object_points.append(idx)
-        p0_obj = p0[object_points], p1_obj = p1[object_points]
+        if len(object_points) < 3:
+            continue
+        p0_obj = p0[object_points]
+        p1_obj = p1[object_points]
         obj_vec = p1_obj - p0_obj
-        angles = np.rad2deg(np.arctan2(obj_vec))
-        mag = np.sqrt(np.sum(obj_vec**2))
+        angles = np.rad2deg(np.arctan2(obj_vec[:, 0], obj_vec[:, 1]))
+        mag = np.sqrt(np.sum(obj_vec**2, axis=1))
         crop = person_moving[yt:yb, xl:xr]
-        measure_max_width(crop, angle)
-
+        width = measure_max_width(crop, np.mean(angles))
+        py, px = np.median(p1_obj[:, 0]), np.median(p1_obj[:, 1])
+        y_poly = np.array([py, (mag[0] * 20)+py, (mag[0] * 20)+py, py]).astype(int)
+        x_poly = np.array([px-width/2, px-width/2, px+width/2, px+width/2]).astype(int)
+        rectangle = draw.polygon(y_poly, x_poly, shape=person_moving.shape)
+        rectangle = np.vstack(rectangle).T
+        rot_rect = rotate_points(rectangle, (py, px), np.median(angles))
+        extensions.append(rot_rect)
 
     match_im = match_points(curr_frame, old_frame, p0, p1)
     plt.imshow(match_im)
     plt.show()
 
-    pass
+    return extensions
+
+
+def rotate_points(points, center, angle):
+    angle_rad = np.radians(angle)
+    cos_theta = np.cos(angle_rad)
+    sin_theta = np.sin(angle_rad)
+
+    # Translate points relative to the center
+    translated_points = points - center
+
+    # Perform the rotation
+    rotated_x = translated_points[:, 0] * cos_theta - translated_points[:, 1] * sin_theta
+    rotated_y = translated_points[:, 0] * sin_theta + translated_points[:, 1] * cos_theta
+
+    # Translate the rotated points back relative to the original center
+    rotated_points = np.stack((rotated_x, rotated_y), axis=1) + center
+
+    return rotated_points
 
 
 def init_model():
@@ -341,9 +369,6 @@ def main():
     p0 = clean_points_in_rois(p0, [r])
     for curr_frame, curr_roi in seq[5:10]:
         curr_label, curr_im_label = net(curr_frame)
-        segmented = cv_merge(curr_frame, curr_im_label)
-        # plt.imshow(segmented)
-        # plt.show()
         curr_gray = color.rgb2gray(curr_frame)
         p1 = cv_optical_flow_lk(old_gray, curr_gray, p0)
         matched = match_points(curr_frame, old_frame, p0, p1)
@@ -357,8 +382,14 @@ def main():
         flow_im = flow_to_color(flow)
         mask = points_to_mask(p1, SIZE[::-1], mask)
         movement = detect_movement(warp_old_gray, curr_gray)
-        detect_objects(warped_old, curr_frame, movement, old_label)
+        ext = detect_objects(warped_old, curr_frame, movement, old_label)
         drawn_im = draw_mask(curr_frame, mask)
+        for i in ext:
+            curr_label[(i[:, 0]).astype(int), (i[:, 1]).astype(int)] = 7
+        ext_im_label = colors[curr_label].astype(np.uint8)
+        segmented = cv_merge(curr_frame, ext_im_label)
+        plt.imshow(segmented)
+        plt.show()
         # plt.imshow(merged_im)
         # plt.show()
         plt.imshow(matched)
