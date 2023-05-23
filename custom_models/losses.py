@@ -1,5 +1,5 @@
 import torch
-from torch import nn
+from torch import nn, Tensor
 from torch.nn import functional as F
 
 
@@ -54,6 +54,14 @@ class DiceAvgLoss(nn.Module):
     def forward(self, y_pred, y_true):
         clipped = torch.clip(dice_coeff_multiclass(y_pred, y_true), 0, 1)
         return -torch.log((clipped + 1) / 2)
+
+
+class DiceAvgLossOld(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, y_pred, y_true):
+        return 1 - dice_coeff_multiclass(y_pred, y_true)
 
 
 class DiceLoss(nn.Module):
@@ -149,6 +157,18 @@ class BCELLDiceAvg(nn.Module):
         return loss
 
 
+class BCELLDiceAvgOld(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.bcell = nn.BCEWithLogitsLoss()
+        self.diceavg = DiceAvgLossOld()
+
+    def forward(self, y_true, y_pred):
+        loss = self.bcell(y_true, y_pred) + self.diceavg(y_true, y_pred)
+
+        return loss
+
+
 def lovasz_grad(gt_sorted):
     """
     Computes gradient of the Lovasz extension w.r.t sorted errors
@@ -211,37 +231,69 @@ class LovaszSoftmax(nn.Module):
         return losses
 
 
-class PySigmoidFocalLoss(nn.Module):
-    def __init__(self, loss_weight=1.0, gamma=2.0, alpha=0.25, size_average=True, avg_factor=None):
+class FocalLoss(nn.Module):
+    def __init__(self,
+                 config=None,
+                 alpha=None,
+                 gamma: float = 0.5,
+                 reduction: str = 'mean',
+                 ignore_index: int = -100):
         super().__init__()
-        self.loss_weight = loss_weight
+        if config is not None:
+            device = torch.device('cuda' if torch.cuda.is_available() and config.gpu else 'cpu')
+            alpha = torch.tensor(alpha).to(device)
         self.gamma = gamma
-        self.alpha = alpha
-        self.size_average = size_average
-        self.avg_factor = avg_factor
+        self.ignore_index = ignore_index
+        self.reduction = reduction
 
-    def forward(self, preds, targets):
-        preds_sigmoid = preds.sigmoid()
-        targets = targets.type_as(preds)
-        pt = (1 - preds_sigmoid) * targets + preds_sigmoid * (1 - targets)
-        focal_weight = (self.alpha * targets + (1 - self.alpha) * (1 - targets)) * pt.pow(self.gamma)
-        loss = F.binary_cross_entropy_with_logits(preds, targets, reduction='none') * focal_weight
+        self.nll_loss = nn.NLLLoss(
+            weight=alpha, reduction='none', ignore_index=ignore_index)
 
-        if self.avg_factor is None:
-            loss = loss.mean() if self.size_average else loss.sum()
-        else:
-            loss = (loss.sum() / self.avg_factor) if self.size_average else loss.sum()
-        return loss * self.loss_weight
+    def forward(self, x: Tensor, y: Tensor) -> Tensor:
+        if x.ndim > 2:
+            # (N, C, d1, d2, ..., dK) --> (N * d1 * ... * dK, C)
+            c = x.shape[1]
+            x = x.permute(0, *range(2, x.ndim), 1).reshape(-1, c)
+            # (N, d1, d2, ..., dK) --> (N * d1 * ... * dK,)
+            y = y.view(-1)
+
+        unignored_mask = y != self.ignore_index
+        y = y[unignored_mask]
+        if len(y) == 0:
+            return torch.tensor(0.)
+        x = x[unignored_mask]
+
+        # compute weighted cross entropy term: -alpha * log(pt)
+        # (alpha is already part of self.nll_loss)
+        log_p = F.log_softmax(x, dim=-1)
+        ce = self.nll_loss(log_p, y)
+
+        # get true class column from each row
+        all_rows = torch.arange(len(x))
+        log_pt = log_p[all_rows, y]
+
+        # compute focal term: (1 - pt)^gamma
+        pt = log_pt.exp()
+        focal_term = (1 - pt)**self.gamma
+
+        # the full loss: -alpha * ((1 - pt)^gamma) * log(pt)
+        loss = focal_term * ce
+
+        if self.reduction == 'mean':
+            loss = loss.mean()
+        elif self.reduction == 'sum':
+            loss = loss.sum()
+
+        return loss
 
 
-class MixedLoss(nn.Module):
+class FocalDiceAvg(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
-        self.focal_loss = PySigmoidFocalLoss(**kwargs)
+        self.focal_loss = FocalLoss(**kwargs)
         self.dice_loss = DiceAvgLoss()
 
     def forward(self, pred, target):
         fl = self.focal_loss(pred, target)
-        dl = torch.log(1 - 0.25*torch.clip(self.dice_loss(pred, target), 0, 1))
-        # print(f'focal: {fl},  dice: {dl}')
-        return 2*fl - dl
+        dl = self.dice_loss(pred, target)
+        return fl + dl
