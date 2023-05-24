@@ -250,6 +250,7 @@ class FocalLoss(nn.Module):
             weight=alpha, reduction='none', ignore_index=ignore_index)
 
     def forward(self, x: Tensor, y: Tensor) -> Tensor:
+        y = torch.argmax(y, dim=1)
         if x.ndim > 2:
             # (N, C, d1, d2, ..., dK) --> (N * d1 * ... * dK, C)
             c = x.shape[1]
@@ -296,4 +297,4 @@ class FocalDiceAvg(nn.Module):
     def forward(self, pred, target):
         fl = self.focal_loss(pred, target)
         dl = self.dice_loss(pred, target)
-        return fl + dl
+        return fl + 1.5*dl
