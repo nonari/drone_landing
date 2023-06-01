@@ -25,6 +25,8 @@ synthetic_classnames = np.array([
     'water'
 ])
 
+synthetic_risks = np.array([0.9, 0.2, 0.9, 0.5, 0.9, 0.0, 0.9, 1.0, 0.9])
+
 synthetic_color_keys = np.asarray([
     [255, 255, 0],
     [0, 255, 0],

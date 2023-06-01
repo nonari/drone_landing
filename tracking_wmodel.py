@@ -4,6 +4,7 @@ from glob import glob
 from os import path
 import asyncio
 import threading
+from datasets.synthetic import synthetic_risks as risks
 
 import matplotlib.pyplot as plt
 from torchvision.transforms import transforms, InterpolationMode
@@ -38,6 +39,29 @@ lk_params = dict(winSize=(25, 25),
                  criteria=(cv.TERM_CRITERIA_EPS | cv.TERM_CRITERIA_COUNT, 10, 0.03))
 
 SIZE = 1280, 720
+
+
+def mask_with_ones(im, labels):
+    mask = None
+    for l in labels:
+        if mask is None:
+            mask = (im == l)
+        else:
+            mask = mask or (im == l)
+    mask = True ^ mask
+    return mask.astype(np.uint8)
+
+
+def area(binary_im, max_dist, decay='linear', convert=True):
+    if convert:
+        binary_im = binary_im.astype(np.uint8)
+    distance_map = cv.distanceTransform(binary_im, cv.DIST_L2, 3)
+    distance_map[distance_map > max_dist] = 0
+    risk = 1 - distance_map / max_dist
+    if decay == 'log':
+        risk = np.log2(risk + 1)
+
+    return risk
 
 
 def measure_max_width(binary_mask, angle):
@@ -257,16 +281,16 @@ def detect_movement(im1, im2):
     merged_movement[merged_movement > 0] = 1
     merged_movement = dilation(merged_movement, selem=disk(6))
 
-    plt.imshow(merged_movement)
-    plt.show()
+    # plt.imshow(merged_movement)
+    # plt.show()
     return merged_movement
 
 
 def detect_objects(old_frame, curr_frame, movement, labels):
     person = (labels == 7)
     person_moving = np.logical_and(movement, person).astype(np.uint8)
-    plt.imshow(person_moving*255)
-    plt.show()
+    # plt.imshow(person_moving*255)
+    # plt.show()
     y, x = np.where(person_moving == 1)
     mov_coords = np.hstack([y[:, None], x[:, None]]).astype(np.float32)
     idx = np.random.choice(np.arange(len(y)), int(len(y)*0.01), replace=False)
@@ -298,21 +322,22 @@ def detect_objects(old_frame, curr_frame, movement, labels):
         crop = person_moving[yt:yb, xl:xr]
         width = measure_max_width(crop, np.mean(angles))
         py, px = np.median(p1_obj[:, 0]), np.median(p1_obj[:, 1])
-        y_poly = np.array([py, (mag[0] * 20)+py, (mag[0] * 20)+py, py]).astype(int)
+        y_poly = np.array([py, (mag[0] * 40)+py, (mag[0] * 20)+py, py]).astype(int)
         x_poly = np.array([px-width/2, px-width/2, px+width/2, px+width/2]).astype(int)
         rectangle = draw.polygon(y_poly, x_poly, shape=person_moving.shape)
         rectangle = np.vstack(rectangle).T
-        rot_rect = rotate_points(rectangle, (py, px), np.median(angles))
+        rot_rect = rotate_points(rectangle, (py, px), 90-np.median(angles), shape=person_moving.shape)
         extensions.append(rot_rect)
 
     match_im = match_points(curr_frame, old_frame, p0, p1)
-    plt.imshow(match_im)
-    plt.show()
+    # plt.imshow(match_im)
+    # plt.show()
+    plt.imsave(f'/home/nonari/PycharmProjects/drone_landing/executions/track/{ite[0]}match.jpg', match_im)
 
     return extensions
 
 
-def rotate_points(points, center, angle):
+def rotate_points(points, center, angle, shape=None):
     angle_rad = np.radians(angle)
     cos_theta = np.cos(angle_rad)
     sin_theta = np.sin(angle_rad)
@@ -321,11 +346,18 @@ def rotate_points(points, center, angle):
     translated_points = points - center
 
     # Perform the rotation
-    rotated_x = translated_points[:, 0] * cos_theta - translated_points[:, 1] * sin_theta
-    rotated_y = translated_points[:, 0] * sin_theta + translated_points[:, 1] * cos_theta
+    rotated_y = translated_points[:, 0] * cos_theta - translated_points[:, 1] * sin_theta
+    rotated_x = translated_points[:, 0] * sin_theta + translated_points[:, 1] * cos_theta
 
     # Translate the rotated points back relative to the original center
-    rotated_points = np.stack((rotated_x, rotated_y), axis=1) + center
+    rotated_x += center[1]
+    rotated_y += center[0]
+
+    if shape is not None:
+        rotated_x = np.clip(rotated_x, 0, shape[1] - 1)
+        rotated_y = np.clip(rotated_y, 0, shape[0] - 1)
+
+    rotated_points = np.stack((rotated_y, rotated_x), axis=1)
 
     return rotated_points
 
@@ -353,7 +385,7 @@ def init_model():
 plt.figure(dpi=1200)
 torch.set_grad_enabled(False)
 
-
+ite=[0]
 def main():
     seq.__next__()
     old_frame, r = seq.__next__()
@@ -367,7 +399,7 @@ def main():
     # plt.imshow(mask)
     # plt.show()
     p0 = clean_points_in_rois(p0, [r])
-    for curr_frame, curr_roi in seq[5:10]:
+    for curr_frame, curr_roi in seq[2::2]:
         curr_label, curr_im_label = net(curr_frame)
         curr_gray = color.rgb2gray(curr_frame)
         p1 = cv_optical_flow_lk(old_gray, curr_gray, p0)
@@ -388,12 +420,18 @@ def main():
             curr_label[(i[:, 0]).astype(int), (i[:, 1]).astype(int)] = 7
         ext_im_label = colors[curr_label].astype(np.uint8)
         segmented = cv_merge(curr_frame, ext_im_label)
-        plt.imshow(segmented)
-        plt.show()
+        person_bin = mask_with_ones(curr_label, [7])
+        risk = risks[curr_label]
+        person_risk = area(person_bin, 10, decay='linear', convert=True)
+        risk += person_risk
+        # plt.imshow(segmented)
+        # plt.show()
+        plt.imsave(f'/home/nonari/PycharmProjects/drone_landing/executions/track/{ite[0]}seg.jpg', segmented)
+        ite[0] += 1
         # plt.imshow(merged_im)
         # plt.show()
-        plt.imshow(matched)
-        plt.show()
+        # plt.imshow(matched)
+        # plt.show()
         # plt.imshow(flow_im)
         # plt.show()
         print('dddddddddddddd')
