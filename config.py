@@ -48,9 +48,9 @@ class TrainConfig(Config):
         super().__init__(name)
         self._training = False
 
+        self.data_factor = 1
         # transforms
         self.augment = True
-
         # checkpoint frequency
         self.save_every = 50  # epochs
 

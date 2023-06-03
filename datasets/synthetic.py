@@ -226,3 +226,56 @@ class Synthetic(GenericDataset):
             return self.uavid[index - self.max_rural - 1]
         else:
             return self.rural[index]
+
+
+class RuralAero(GenericDataset):
+    def __init__(self, config):
+        super().__init__(config)
+        self.max_rural = -1
+        self.aero = AeroscapesToSynthetic(config)
+        self.rural = RuralscapesOrigToSynthetic(config)
+
+    def classes(self):
+        return len(synthetic_classnames)
+
+    def classnames(self):
+        return synthetic_classnames
+
+    def colors(self):
+        return synthetic_color_keys
+
+    def pred_to_color_mask(self, true, pred):
+        return self.rural.pred_to_color_mask(true, pred)
+
+    def get_folds(self):
+        rural_folds = self.rural.get_folds()
+        aero_folds = self.aero.get_folds()
+
+        if isinstance(self.config, TrainConfig):
+            rural_train = rural_folds[0][0]
+            rural_val = rural_folds[0][1]
+            self.max_rural = max([max(rural_train), max(rural_val)])
+
+            aero_train = np.array(aero_folds[0][0]) + self.max_rural + 1
+            aero_val = np.array(aero_folds[0][1]) + self.max_rural + 1
+
+            train = list(map(lambda x: int(x), np.concatenate([rural_train, aero_train])))
+            val = list(map(lambda x: int(x), np.concatenate([rural_val, aero_val])))
+
+            return [(train, val)]
+
+        else:
+            rural_test = rural_folds[0]
+            self.max_rural = max(rural_test)
+
+            aero_test = np.array(aero_folds[0]) + self.max_rural + 1
+
+            test = list(map(lambda x: int(x), np.concatenate([rural_test, aero_test])))
+
+            return [test]
+
+    def __getitem__(self, index) -> T_co:
+        if index <= self.max_rural:
+            return self.rural[index]
+        else:
+            return self.aero[index - self.max_rural - 1]

@@ -69,8 +69,9 @@ class RuralscapesDataset(GenericDataset):
                                                                int(path.basename(x).split('_')[2].split('.')[0])))
         self._label_paths = sorted(label_paths, key=lambda x: (int(path.basename(x).split('_')[2]),
                                                                int(path.basename(x).split('_')[3].split('.')[0])))
-        self._image_paths = list(map(lambda x: x[1], filter(lambda x: x[0] % 4 == 0, enumerate(self._image_paths))))
-        self._label_paths = list(map(lambda x: x[1], filter(lambda x: x[0] % 4 == 0, enumerate(self._label_paths))))
+        if isinstance(self.config, TrainConfig) and config.data_factor > 1:
+            self._image_paths = list(map(lambda x: x[1], filter(lambda x: x[0] % config.data_factor == 0, enumerate(self._image_paths))))
+            self._label_paths = list(map(lambda x: x[1], filter(lambda x: x[0] % config.data_factor == 0, enumerate(self._label_paths))))
         self.inv_idx = {}
         self.index()
 

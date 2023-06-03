@@ -82,9 +82,9 @@ class Aeroscapes(GenericDataset):
         label_paths = glob(labels_root + '/*.png')
         self._image_paths = sorted(image_paths, key=lambda x: path.basename(x)[:-4])
         self._label_paths = sorted(label_paths, key=lambda x: path.basename(x)[:-4])
-
-        self._label_paths = list(map(lambda x: x[1], filter(lambda x: x[0] % 4 == 0, enumerate(self._label_paths))))
-        self._image_paths = list(map(lambda x: x[1], filter(lambda x: x[0] % 4 == 0, enumerate(self._image_paths))))
+        if isinstance(self.config, TrainConfig) and config.data_factor > 1:
+            self._label_paths = list(map(lambda x: x[1], filter(lambda x: x[0] % config.data_factor == 0, enumerate(self._label_paths))))
+            self._image_paths = list(map(lambda x: x[1], filter(lambda x: x[0] % config.data_factor == 0, enumerate(self._image_paths))))
 
         self.inv_idx = {}
         self.index()

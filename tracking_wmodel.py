@@ -23,6 +23,12 @@ from custom_models.safeuav import UNet_MDCB
 from datasets.dataset import adapt_image
 from tracking.Utils import FramesSequenceUAV123, BlockingBuffer, anim
 
+from matplotlib.colors import LinearSegmentedColormap
+c = ["darkred","red","lightcoral", "palegreen","green","darkgreen"]
+v = [0,.15,.4,0.6,.9,1.]
+l = list(zip(v,c))
+cmap=LinearSegmentedColormap.from_list('rg',l, N=256)
+
 dataset_root = path.expanduser('~/Documentos/Dataset_UAV123_10fps')
 seq = FramesSequenceUAV123(dataset_root, 'bike1')
 buff = BlockingBuffer()
@@ -52,16 +58,19 @@ def mask_with_ones(im, labels):
     return mask.astype(np.uint8)
 
 
-def area(binary_im, max_dist, decay='linear', convert=True):
+def area(binary_im, max_dist, decay='linear', risk_lv=1, convert=True):
     if convert:
         binary_im = binary_im.astype(np.uint8)
     distance_map = cv.distanceTransform(binary_im, cv.DIST_L2, 3)
+    zero = (distance_map < max_dist).astype(float)
     distance_map[distance_map > max_dist] = 0
-    risk = 1 - distance_map / max_dist
+    if decay == 'solid':
+        return zero * risk_lv
+    risk = zero - distance_map / max_dist
     if decay == 'log':
         risk = np.log2(risk + 1)
 
-    return risk
+    return risk * risk_lv
 
 
 def measure_max_width(binary_mask, angle):
@@ -304,7 +313,11 @@ def detect_objects(old_frame, curr_frame, movement, labels):
     cc_mov_flat = cc_mov.flatten()
     extensions = []
     for reg in mov_props:
-        if reg.area < 200:
+        if reg.area < 4000:
+            continue
+        if reg.major_axis_length < 50:
+            continue
+        if reg.minor_axis_length < 40:
             continue
         yt, xl, yb, xr = reg.bbox
         mov_points = np.where(cc_mov_flat == reg.label)[0]
@@ -422,10 +435,14 @@ def main():
         segmented = cv_merge(curr_frame, ext_im_label)
         person_bin = mask_with_ones(curr_label, [7])
         risk = risks[curr_label]
-        person_risk = area(person_bin, 10, decay='linear', convert=True)
+        person_risk = area(person_bin, 50, decay='solid', convert=True)
         risk += person_risk
-        # plt.imshow(segmented)
+        risk = np.clip(risk, 0, 1)
+        # plt.imshow(1-risk, cmap='Greys')
         # plt.show()
+        ppt_r = (1 - risk) / 3
+        ppt_r[0,0] = 1
+        plt.imsave(f'/home/nonari/PycharmProjects/drone_landing/executions/track/{ite[0]}risk.png', ppt_r, cmap="hsv")
         plt.imsave(f'/home/nonari/PycharmProjects/drone_landing/executions/track/{ite[0]}seg.jpg', segmented)
         ite[0] += 1
         # plt.imshow(merged_im)
