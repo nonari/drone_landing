@@ -13,6 +13,8 @@ class Config(object):
         self.uavid_root = '/home/nonari/Documentos/uavid_v1.5'
         self.rural_root = '/home/nonari/Documentos/ruralscapes'
 
+        self.uav123_root = '/home/nonari/Documentos/uav123'
+
         self.aeroscapes_root = '/home/nonari/Documentos/aeroscapes'
 
         self.tugraz_root = '/home/nonari/Documentos/semantic_drone_dataset_semantics_v1.1/semantic_drone_dataset/'

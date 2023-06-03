@@ -53,6 +53,26 @@ def get_all(paths, ids):
     return all_frames
 
 
+class UAV123(GenericDataset):
+    def __init__(self, config):
+        super().__init__(config)
+        self._color_keys = color_keys
+        self._class_names = ruralscapes_classnames
+        if not path.exists(config.uav123_root):
+            raise Exception('Incorrect path for UAV123 dataset')
+
+        image_paths = glob(path.join(config.uav123_root, '*.jpg'))
+        label_paths = glob(path.join(config.uav123_root, '*.png'))
+
+        self._image_paths = sorted(image_paths, key=lambda x: int(path.basename(x).split('.')[0]))
+        self._label_paths = sorted(label_paths, key=lambda x: int(path.basename(x).split('.')[0]))
+
+        self._label_to_tensor = label_to_tensor
+
+    def get_folds(self):
+        return list(range(len(self._image_paths)))
+
+
 class RuralscapesDataset(GenericDataset):
     def __init__(self, config):
         super().__init__(config)

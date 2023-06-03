@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data.dataset import T_co
 from config import TrainConfig, TestConfig
-from datasets.ruralscapes import RuralscapesOrigSplit
+from datasets.ruralscapes import RuralscapesOrigSplit, UAV123
 from datasets.ruralscapes import color_keys as rural_color_keys
 from datasets.uavid import color_keys as uavid_color_keys
 from datasets.aeroscapes import aeroscapes_color as aeroscapes_color_keys, Aeroscapes
@@ -38,6 +38,45 @@ synthetic_color_keys = np.asarray([
     [255, 127, 0],
     [0, 0, 255]
 ])
+
+class UAV123ToSynthetic(UAV123):
+    def __init__(self, config):
+        super().__init__(config)
+        assoc = [
+            ('building', 'building'),
+            ('land', 'land'),
+            ('forest', 'tree'),
+            ('sky', 'back'),
+            ('fence', 'obstacle'),
+            ('road', 'road'),
+            ('hill', 'back'),
+            ('church', 'building'),
+            ('car', 'car'),
+            ('person', 'person'),
+            ('haystack', 'obstacle'),
+            ('water', 'water')
+        ]
+
+        transform_color_key, color_collapse = get_dataset_transform(synthetic_classnames, assoc)
+        extended_colors = np.vstack([rural_color_keys, [-1, -1, -1]])
+        dest_colors = extended_colors[transform_color_key]
+        self._color_keys = dest_colors
+        self._class_names = synthetic_classnames
+        self._label_to_tensor = label_to_tensor_collapse(rural_color_keys, color_collapse)
+
+    def colors(self):
+        return synthetic_color_keys
+
+    def classnames(self):
+        return synthetic_classnames
+
+    def classes(self):
+        return len(synthetic_classnames)
+
+    def pred_to_color_mask(self, true, pred):
+        pred_mask = synthetic_color_keys[pred]
+        true_mask = synthetic_color_keys[true]
+        return true_mask, pred_mask
 
 
 class RuralscapesOrigToSynthetic(RuralscapesOrigSplit):
