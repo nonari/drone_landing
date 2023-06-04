@@ -275,7 +275,7 @@ class FocalLoss(nn.Module):
 
         # compute focal term: (1 - pt)^gamma
         pt = log_pt.exp()
-        focal_term = (1 - pt)**self.gamma
+        focal_term = torch.clip(1 - pt, 0.000001, 1)**self.gamma
 
         # the full loss: -alpha * ((1 - pt)^gamma) * log(pt)
         loss = focal_term * ce

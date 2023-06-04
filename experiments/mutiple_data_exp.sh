@@ -19,7 +19,7 @@ params="-override=False -stop_after_miss=3 -batch_size=4 -augment=True \
         -uavid_root=$uavidroot -rural_root=$ruralroot -tugraz_root=$tugrazroot -aeroscapes_root=$aeroroot -uav123_root=$uav123root \
         -num_threads=4 -max_epochs=150 -delta=-0.01 -model_config.optimizer.params.lr=0.0001 \
         -model_config.net.name=unet -model_config.net.params.encoder_name=resnet18 -model_config=base
-        -model_config.loss.name=custom_models.losses.BCEDiceAvgLoss "
+        -model_config.loss.name=custom_models.losses.BCELLDiceAvg "
 
  
 # Uavid
