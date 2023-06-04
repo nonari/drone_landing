@@ -78,6 +78,7 @@ def test_net(config, dataset, fold_info, sampler=None):
     if config.training_charts:
         plot_training_charts(config, device)
 
+    del net
     return fold_results
 
 

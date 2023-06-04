@@ -4,12 +4,9 @@ from config import TrainConfig, TestConfig
 from datasets.ruralscapes import RuralscapesOrigSplit, UAV123
 from datasets.ruralscapes import color_keys as rural_color_keys
 from datasets.uavid import color_keys as uavid_color_keys
-from datasets.aeroscapes import aeroscapes_color as aeroscapes_color_keys, Aeroscapes
-from datasets.aeroscapes import aeroscapes_classnames
+from datasets.aeroscapes import Aeroscapes
 from datasets.aeroscapes import label_to_tensor as aero_label_to_tensor
-from datasets.ruralscapes import ruralscapes_classnames
 from datasets.uavid import UAVid
-from datasets.uavid import class_names as uavid_classnames
 from datasets.dataset import get_dataset_transform, label_to_tensor_collapse, sc_to_tensor_collapse, GenericDataset
 import numpy as np
 
@@ -21,8 +18,7 @@ synthetic_classnames = np.array([
     'obstacle',
     'road',
     'car',
-    'person',
-    'water'
+    'person'
 ])
 
 synthetic_risks = np.array([0.9, 0.2, 0.9, 0.5, 0.9, 0.0, 0.9, 1.0, 0.9])
@@ -35,8 +31,7 @@ synthetic_color_keys = np.asarray([
     [255, 255, 255],
     [255, 0, 255],
     [255, 0, 0],
-    [255, 127, 0],
-    [0, 0, 255]
+    [255, 127, 0]
 ])
 
 class UAV123ToSynthetic(UAV123):
@@ -54,7 +49,7 @@ class UAV123ToSynthetic(UAV123):
             ('car', 'car'),
             ('person', 'person'),
             ('haystack', 'obstacle'),
-            ('water', 'water')
+            ('water', 'back')
         ]
 
         transform_color_key, color_collapse = get_dataset_transform(synthetic_classnames, assoc)
@@ -94,7 +89,7 @@ class RuralscapesOrigToSynthetic(RuralscapesOrigSplit):
             ('car', 'car'),
             ('person', 'person'),
             ('haystack', 'obstacle'),
-            ('water', 'water')
+            ('water', 'back')
         ]
 
         transform_color_key, color_collapse = get_dataset_transform(synthetic_classnames, assoc)

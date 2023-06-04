@@ -8,55 +8,57 @@ dataset_aero=datasets.synthetic.AeroscapesToSynthetic
 dataset_uav123=datasets.synthetic.UAV123ToSynthetic
 dataset_ruralaero=datasets.synthetic.RuralAero
 
-home=xxx
-ruralroot=/home/"$home"/tfm/ruralscapes_light
-uavidroot=/home/"$home"/tfm/uavid_v1.5
-tugrazroot=/home/"$home"/tfm/semantic_drone_dataset
-aeroroot=/home/"$home"/tfm/aeroscapes
-uav123root=/home/"$home"/tfm/uav123
+home=/home/xxx/tfm
+executions=/home/xxx/tfm/executions
+
+ruralroot="$home"/ruralscapes_light
+uavidroot="$home"/uavid_v1.5
+tugrazroot="$home"/semantic_drone_dataset
+aeroroot="$home"/aeroscapes
+uav123root="$home"/uav123
 
 params="-override=False -stop_after_miss=3 -batch_size=4 -augment=True \
         -uavid_root=$uavidroot -rural_root=$ruralroot -tugraz_root=$tugrazroot -aeroscapes_root=$aeroroot -uav123_root=$uav123root \
-        -num_threads=4 -max_epochs=150 -delta=-0.01 -model_config.optimizer.params.lr=0.0001 \
+        -num_threads=4 -max_epochs=200 -delta=-0.01 -model_config.optimizer.params.lr=0.0001 \
         -model_config.net.name=unet -model_config.net.params.encoder_name=resnet18 -model_config=base
         -model_config.loss.name=custom_models.losses.BCELLDiceAvg "
 
  
 # Uavid
 python3 drone_landing/main.py train  -dataset_name="$dataset_uavid" \
--name=uavid -validation_epochs=10 $params
+-name=uavid -data_factor=1 -validation_epochs=10 $params
 
 # Ruralscapes
 python3 drone_landing/main.py train -dataset_name="$dataset_rural" \
--name=ruralscapes -validation_epochs=10 $params
+-name=ruralscapes -data_factor=1 -validation_epochs=10 $params
 
 # Aeroscapes
 python3 drone_landing/main.py train -dataset_name="$dataset_aero" \
--name=aeroscapes -validation_epochs=10 $params
+-name=aeroscapes -data_factor=2 -validation_epochs=10 $params
 
 # Rural by uavid
 python3 drone_landing/main.py train -dataset_name="$dataset_rural" \
--name=ruralbyuavid -reuse=True -reuse_path=/home/$home/tfm/executions/uavid/models/0 \
+-name=ruralbyuavid -reuse=True -reuse_path="$executions"/uavid/models/0 \
 -validation_epochs=2 -data_factor=4 $params
 
 # Aero by uavid
 python3 drone_landing/main.py train -dataset_name="$dataset_rural" \
--name=aerobyuavid -reuse=True -reuse_path=/home/$home/tfm/executions/uavid/models/0 \
+-name=aerobyuavid -reuse=True -reuse_path="$executions"/uavid/models/0 \
 -validation_epochs=2 -data_factor=4 $params
 
 # Aeroandrural by uavid
 python3 drone_landing/main.py train -dataset_name="$dataset_rural" \
--name=aeroandrural -reuse=True -reuse_path=/home/$home/tfm/executions/uavid/models/0 \
+-name=aeroandrural -reuse=True -reuse_path="$executions"/uavid/models/0 \
 -validation_epochs=2 -data_factor=4 $params
 
 
 #TEST ----------------------------------------------------------
-cp -r /home/$home/tfm/executions/uavid /home/$home/tfm/executions/uavid_t123
-cp -r /home/$home/tfm/executions/ruralscapes /home/$home/tfm/executions/rural_t123
-cp -r /home/$home/tfm/executions/aeroscapes /home/$home/tfm/executions/aero_t123
-cp -r /home/$home/tfm/executions/ruralbyuavid /home/$home/tfm/executions/ruralbyuavid_t123
-cp -r /home/$home/tfm/executions/aerobyuavid /home/$home/tfm/executions/aerobyuavid_t123
-cp -r /home/$home/tfm/executions/aeroandrural /home/$home/tfm/executions/aeroandrural_t123
+cp -r "$executions"/uavid "$executions"/uavid_t123
+cp -r "$executions"/ruralscapes "$executions"/rural_t123
+cp -r "$executions"/aeroscapes "$executions"/aero_t123
+cp -r "$executions"/ruralbyuavid "$executions"/ruralbyuavid_t123
+cp -r "$executions"/aerobyuavid "$executions"/aerobyuavid_t123
+cp -r "$executions"/aeroandrural "$executions"/aeroandrural_t123
 
 python3 drone_landing/main.py test \
 -uavid_root=$uavidroot -rural_root=$ruralroot -tugraz_root=$tugrazroot -aeroscapes_root=$aeroroot -uav123_root=$uav123root \

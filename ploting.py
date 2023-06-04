@@ -22,7 +22,7 @@ def confusion(conf, class_names, location):
     plt.title('Refined Confusion Matrix', fontsize=20)
 
     plt.savefig(location)
-    plt.show()
+    # plt.show()
 
 
 if __name__ == '__main__':

@@ -70,7 +70,7 @@ class UAV123(GenericDataset):
         self._label_to_tensor = label_to_tensor
 
     def get_folds(self):
-        return list(range(len(self._image_paths)))
+        return [list(range(len(self._image_paths)))]
 
 
 class RuralscapesDataset(GenericDataset):
