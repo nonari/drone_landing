@@ -59,6 +59,7 @@ cp -r "$executions"/aeroscapes "$executions"/aero_t123
 cp -r "$executions"/ruralbyuavid "$executions"/ruralbyuavid_t123
 cp -r "$executions"/aerobyuavid "$executions"/aerobyuavid_t123
 cp -r "$executions"/aeroandrural "$executions"/aeroandrural_t123
+cp -r "$executions"/ruralbyuavid "$executions"/ruralbyuavid_taero
 
 python3 drone_landing/main.py test \
 -uavid_root=$uavidroot -rural_root=$ruralroot -tugraz_root=$tugrazroot -aeroscapes_root=$aeroroot -uav123_root=$uav123root \
@@ -107,3 +108,7 @@ python3 drone_landing/main.py test \
 python3 drone_landing/main.py test \
 -uavid_root=$uavidroot -rural_root=$ruralroot -tugraz_root=$tugrazroot -aeroscapes_root=$aeroroot -uav123_root=$uav123root \
 -model_config=base -name=aeroandrural_t123 -dataset_name="$dataset_uav123"
+
+python3 drone_landing/main.py test \
+-uavid_root=$uavidroot -rural_root=$ruralroot -tugraz_root=$tugrazroot -aeroscapes_root=$aeroroot -uav123_root=$uav123root \
+-model_config=base -name=ruralbyuavid_taero -dataset_name="$dataset_aero"
