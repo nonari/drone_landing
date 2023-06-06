@@ -2,6 +2,14 @@ from matplotlib import pyplot as plt
 import seaborn as sea
 import torch
 from datasets.aeroscapes import aeroscapes_classnames
+from sklearn.metrics import ConfusionMatrixDisplay
+
+
+def confusion_old(conf, class_names, location):
+    conf_disp = ConfusionMatrixDisplay(confusion_matrix=conf, display_labels=class_names)
+    conf_disp.plot(xticks_rotation=25, values_format='.2f')
+    # plt.show()
+    plt.savefig(location, bbox_inches="tight")
 
 
 def confusion(conf, class_names, location):
@@ -22,7 +30,6 @@ def confusion(conf, class_names, location):
     plt.title('Refined Confusion Matrix', fontsize=20)
 
     plt.savefig(location)
-    # plt.show()
 
 
 if __name__ == '__main__':

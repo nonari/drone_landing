@@ -212,14 +212,14 @@ def folds_test(config):
             table_loc = path.join(config.test_path, f'table_metrics_{fold}.txt')
             tabulator.write_table(fold_summary, table_loc, dataset.classnames())
             conf_loc = path.join(config.test_path, f'confusion_{fold}.jpg')
-            ploting.confusion(fold_summary['confusion'], dataset.classnames(), conf_loc)
+            ploting.confusion_old(fold_summary['confusion'], dataset.classnames(), conf_loc)
             torch.save(fold_summary, path.join(config.test_path, f'metrics_summary_{fold}'))
 
     if config.validation_stats:
         summary = summarize_results(results)
         tabulator.write_table(summary, path.join(config.test_path, 'table_metrics.txt'), dataset.classnames())
-        conf_loc = path.join(config.test_path, f'confusion.jpg')
-        ploting.confusion(summary['confusion'], dataset.classnames(), conf_loc)
+        conf_loc = path.join(config.test_path, f'conf_{config.name}.jpg')
+        ploting.confusion_old(summary['confusion'], dataset.classnames(), conf_loc)
         torch.save(summary, path.join(config.test_path, 'metrics_summary'))
 
 
