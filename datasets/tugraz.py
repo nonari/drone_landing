@@ -71,7 +71,7 @@ def label_to_tensor(label, keys):
     return sparse
 
 
-class TUGrazDataset(GenericDataset):
+class TUGraz(GenericDataset):
     def __init__(self, config):
         super().__init__(config)
         self._color_keys = tugraz_color_keys
