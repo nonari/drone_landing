@@ -2,12 +2,9 @@ import numpy as np
 import torch
 from os import path
 from glob import glob
-from PIL import Image
-import importlib
 
-from sklearn.model_selection import KFold
+from datasets.dataset import GenericDataset
 
-from datasets.dataset import adapt_image, GenericDataset
 
 tugraz_color_keys = np.asarray([
     [0, 0, 0],
@@ -65,95 +62,36 @@ tugraz_classnames = [
 ]
 
 
-def label_to_tensor_v2(label, keys):
-    v = np.asarray([256 * 256, 256, 1])
-    one_key = np.sum(keys * v, axis=1)
-    one_ch = np.sum(label * v[None, None], axis=2)
-    sparse = np.equal(one_key[None, None], one_ch[..., None]).astype(np.float32)
-    return torch.tensor(sparse).movedim(2, 0)
+def label_to_tensor(label, keys):
+    v = torch.tensor([256 * 256, 256, 1])
+    one_key = (torch.tensor(keys) * v).sum(dim=1)
+    one_ch = (label * v[:, None, None]).sum(dim=0)
 
-
-def label_to_tensor_v3(label, keys, device='cuda'):
-    v = torch.tensor([256 * 256, 256, 1]).unsqueeze(dim=0).to(device)
-    keys = torch.tensor(keys).to(device)
-    one_key = (keys * v).sum(dim=1).reshape(1, 1, -1)
-    label = torch.tensor(label).to(device)
-    one_ch = (label * v.unsqueeze(dim=1)).sum(dim=2, keepdims=True)
-    sparse = (one_key == one_ch).float()
-    return sparse.movedim(2, 0)
-
-
-def label_to_tensor(label, color_mask):
-    sparse_mask = np.all(np.equal(label, color_mask), axis=3).astype(np.float32)
-    return torch.tensor(sparse_mask)
-
-
-def prepare_image(transformation):
-    def f(im_path):
-        im_orig = Image.open(im_path)
-        im_tensor = transformation(im_orig)
-        im_orig.close()
-        return im_tensor
-    return f
-
-
-def label_transformation(color_keys, new_size, device):
-    def f(label):
-        lab_res = label.resize(new_size[::-1], Image.NEAREST)
-        return label_to_tensor_v2(np.asarray(lab_res), color_keys)
-    return f
+    sparse = (one_key[:, None, None] == one_ch).float()
+    return sparse
 
 
 class TUGrazDataset(GenericDataset):
     def __init__(self, config):
         super().__init__(config)
-        self.tugraz_images_loc = 'low_res_images'
-        self.tugraz_labels_loc = 'low_res_label_images'
-        subset = 'training_set'
-        images_root = path.join(config.tugraz_root, subset, self.tugraz_images_loc)
-        labels_root = path.join(config.tugraz_root, subset, f'gt/semantic/{self.tugraz_labels_loc}')
+        self._color_keys = tugraz_color_keys
+        self._class_names = tugraz_classnames
+        if not path.exists(config.tugraz_root):
+            raise Exception('Incorrect path for TUGraz dataset')
 
-        image_paths = glob(images_root + '/*.jpg')
-        label_paths = glob(labels_root + '/*.png')
-        image_paths = sorted(image_paths, key=lambda x: int(path.basename(x)[:3]))
-        label_paths = sorted(label_paths, key=lambda x: int(path.basename(x)[:3]))
+        image_paths = glob(path.join(config.tugraz_root, 'training_set/gt/semantic/low_res_label_images/*.jpg'))
+        label_paths = glob(path.join(config.tugraz_root, 'low_res_images/*.png'))
 
-        self._image_paths = np.asarray(image_paths)
-        self._label_paths = np.asarray(label_paths)
+        self._image_paths = sorted(image_paths, key=lambda x: int(path.basename(x).split('.')[0]))
+        self._label_paths = sorted(label_paths, key=lambda x: int(path.basename(x).split('.')[0]))
 
-        net_config = importlib.import_module(f'net_configurations.{config.model_config}').CONFIG
-        t_tugraz = adapt_image(net_config['input_size'])
+        if config.data_factor > 1:
+            self._image_paths = list(
+                map(lambda x: x[1], filter(lambda x: x[0] % config.data_factor == 0, enumerate(self._image_paths))))
+            self._label_paths = list(
+                map(lambda x: x[1], filter(lambda x: x[0] % config.data_factor == 0, enumerate(self._label_paths))))
 
-        self._prepare_im = prepare_image(t_tugraz)
-        device = torch.device('cuda' if torch.cuda.is_available() and config.gpu else 'cpu')
-        self._prepare_lab = prepare_image(label_transformation(
-            tugraz_color_keys, net_config['input_size'], device))
+        self._label_to_tensor = label_to_tensor
 
     def get_folds(self):
-        kfold = KFold(n_splits=self.config.folds, shuffle=True, random_state=self.config.idx_seed)
-        folds = list(kfold.split(self))
-        if self.config.train:
-            folds_part = [(tr, None) for tr, _ in folds]
-        else:
-            folds_part = [ts for _, ts in folds]
-        return folds_part
-
-    def classes(self):
-        return 24
-
-    def classnames(self):
-        return tugraz_classnames
-
-    def colors(self):
-        return tugraz_color_keys
-
-    def pred_to_color_mask(self, true, pred):
-        pred_mask = tugraz_color_keys[pred]
-        true_mask = tugraz_color_keys[true]
-        return true_mask, pred_mask
-
-    def __len__(self):
-        return self._image_paths.__len__()
-
-    def __getitem__(self, item):
-        return self._prepare_im(self._image_paths[item]),  self._prepare_lab(self._label_paths[item])
+        return [list(range(len(self._image_paths)))]

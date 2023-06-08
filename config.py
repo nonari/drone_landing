@@ -34,6 +34,8 @@ class Config(object):
         self.model_config = None
         self.gpu = True
 
+        self.data_factor = 1
+
         # this is override on resume
         self.idx_seed = 42
         self.batch_size = 1
@@ -50,7 +52,6 @@ class TrainConfig(Config):
         super().__init__(name)
         self._training = False
 
-        self.data_factor = 1
         # transforms
         self.augment = True
         # checkpoint frequency
