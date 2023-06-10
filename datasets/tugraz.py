@@ -79,8 +79,8 @@ class TUGraz(GenericDataset):
         if not path.exists(config.tugraz_root):
             raise Exception('Incorrect path for TUGraz dataset')
 
-        image_paths = glob(path.join(config.tugraz_root, 'training_set/gt/semantic/low_res_label_images/*.jpg'))
-        label_paths = glob(path.join(config.tugraz_root, 'low_res_images/*.png'))
+        image_paths = glob(path.join(config.tugraz_root, 'training_set/low_res_images/*.jpg'))
+        label_paths = glob(path.join(config.tugraz_root, 'training_set/gt/semantic/low_res_label_images/*.png'))
 
         self._image_paths = sorted(image_paths, key=lambda x: int(path.basename(x).split('.')[0]))
         self._label_paths = sorted(label_paths, key=lambda x: int(path.basename(x).split('.')[0]))

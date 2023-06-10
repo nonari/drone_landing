@@ -2,7 +2,7 @@ import torch
 from torch.utils.data.dataset import T_co
 from config import TrainConfig, TestConfig
 from datasets.ruralscapes import RuralscapesOrigSplit, UAV123
-from datasets.tugraz import TUGraz
+from datasets.tugraz import TUGraz, tugraz_color_keys, tugraz_classnames
 from datasets.ruralscapes import color_keys as rural_color_keys
 from datasets.uavid import color_keys as uavid_color_keys
 from datasets.aeroscapes import Aeroscapes
@@ -36,8 +36,7 @@ synthetic_color_keys = np.asarray([
 ])
 
 
-
-class UAV123ToSynthetic(UAV123):
+class TUGrazToSynthetic(TUGraz):
     def __init__(self, config):
         super().__init__(config)
         assoc = [
@@ -68,11 +67,11 @@ class UAV123ToSynthetic(UAV123):
         ]
 
         transform_color_key, color_collapse = get_dataset_transform(synthetic_classnames, assoc)
-        extended_colors = np.vstack([rural_color_keys, [-1, -1, -1]])
+        extended_colors = np.vstack([tugraz_color_keys, [-1, -1, -1]])
         dest_colors = extended_colors[transform_color_key]
         self._color_keys = dest_colors
         self._class_names = synthetic_classnames
-        self._label_to_tensor = label_to_tensor_collapse(rural_color_keys, color_collapse)
+        self._label_to_tensor = label_to_tensor_collapse(tugraz_color_keys, color_collapse)
 
     def colors(self):
         return synthetic_color_keys
