@@ -13,7 +13,7 @@ class FramesSequenceUAV123(collections.abc.Iterable):
     def __iter__(self) -> Iterator:
         return self
 
-    def __init__(self, root, video_name):
+    def __init__(self, root, video_name, rois=None):
         frames_paths = glob(path.join(root, 'UAV123_10fps', 'data_seq', 'UAV123_10fps', video_name, '*'))
         self._root = root
         self._video_name = video_name
@@ -21,18 +21,20 @@ class FramesSequenceUAV123(collections.abc.Iterable):
 
         self._rois = []
         annotations_path = path.join(root, 'UAV123_10fps', 'anno', 'UAV123_10fps', f'{video_name}.txt')
-        with open(annotations_path, 'r') as annotations_file:
-            for line in annotations_file:
-                roi_parts = line.split(',')
-                roi = int(roi_parts[1]), int(roi_parts[0]), int(roi_parts[3]), int(roi_parts[2])
-                self._rois.append(roi)
-
+        if rois is None:
+            with open(annotations_path, 'r') as annotations_file:
+                for line in annotations_file:
+                    roi_parts = line.split(',')
+                    roi = int(roi_parts[1]), int(roi_parts[0]), int(roi_parts[3]), int(roi_parts[2])
+                    self._rois.append(roi)
+        else:
+            self._rois = rois
         self._curr = 0
 
     def __getitem__(self, key):
         if isinstance(key, slice):
             # Get the start, stop, and step from the slice
-            obj = FramesSequenceUAV123(self._root, self._video_name)
+            obj = FramesSequenceUAV123(self._root, self._video_name, self._rois)
             obj._frames_paths = self._frames_paths.__getitem__(slice(*key.indices(len(self._frames_paths))))
             obj._rois = self._rois.__getitem__(slice(*key.indices(len(self._frames_paths))))
             return obj
@@ -56,6 +58,19 @@ class FramesSequenceUAV123(collections.abc.Iterable):
         tup = self.get_idx(self._curr)
         self._curr += 1
         return tup
+
+
+class AnySeq(FramesSequenceUAV123):
+    def __iter__(self) -> Iterator:
+        return self
+
+    def __init__(self, root, video_name):
+        frames_paths = glob(path.join(root, 'JPEGImages', video_name + '*'))
+        self._root = root
+        self._video_name = video_name
+        self._frames_paths = sorted(frames_paths, key=lambda x: int(path.basename(x)[:-4]))
+        self._rois = [[0, 0, 0, 0]] * len(frames_paths)
+        self._curr = 0
 
 
 class BlockingBuffer:
