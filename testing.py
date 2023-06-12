@@ -1,6 +1,7 @@
 from training import configure_net
 import torch
 from sklearn import metrics
+from skimage import measure
 from torchvision import transforms
 from torch.utils.data.dataloader import DataLoader
 from torch import cuda
@@ -32,12 +33,12 @@ def test_net(config, dataset, fold_info, sampler=None):
     labels = np.arange(0, dataset.classes())
     conf = np.zeros((dataset.classes(), dataset.classes()))
     total_time = 0
-    for idx, (image, label) in enumerate(data_loader):
+    for idx, (image, label) in enumerate(dataset):
         if not config.validation_stats and not config.generate_images:
             break
 
-        image = image.to(device)
-        label = label.to(device)
+        image = image.unsqueeze(dim=0).to(device)
+        label = label.unsqueeze(dim=0).to(device)
         t0 = time()
         prediction = net(image)
         t1 = time()
@@ -46,6 +47,9 @@ def test_net(config, dataset, fold_info, sampler=None):
         # prediction = torch.rand((1, np.random.randint(0, 25), 704, 1024))
         pred_label = prediction.argmax(dim=1).squeeze().detach().cpu().numpy().astype(np.uint)
         true_label = label.argmax(dim=1).squeeze().detach().cpu().numpy().astype(np.uint)
+        person = np.array([0, 0, 0])
+        if config.person_detect:
+            person += person_detect(config, true_label, pred_label, dataset)
 
         if config.generate_images:
             true_mask, pred_mask = dataset.pred_to_color_mask(true_label, pred_label)
@@ -77,6 +81,12 @@ def test_net(config, dataset, fold_info, sampler=None):
 
     if config.training_charts:
         plot_training_charts(config, device)
+
+    if config.person_detect:
+        text_file = open(path.join(config.test_path, 'person.txt'), "w")
+        text_file.write(f'TP: {person[0]}, FP: {person[1]}, FN: {person[2]}\n')
+        text_file.close()
+
 
     del net
     return fold_results
@@ -136,3 +146,34 @@ def plot_and_save(image, predicted_label, im_label, idx, config, legend):
     # plt.show()
     plt.savefig(path.join(config.test_path, f'{config.fold}_{idx}.jpg'))
     plt.close(fig)
+
+
+def person_detect(config, gt_label, pred_label, dataset):
+    h, w = config.net_config['input_size']
+    fh, fw = 4000/h, 6000/w
+    annotfile = path.join(config.tugraz_root, 'training_set/gt/bounding_box/bounding_boxes/person/imgIdToBBoxArray.p')
+    rois = np.load(annotfile, allow_pickle=True)
+    id = dataset._currid
+    framerois = rois[id]
+    person = (pred_label == 7).astype(int)
+    labeled = measure.label(person)
+    pred_max = np.max(labeled)
+    seen = set()
+    false_negative = 0
+    total = 0
+    true_positive = 0
+    for roi in framerois:
+        total += 1
+        roi[:, 0] = roi[:, 0] / fh
+        roi[:, 1] = roi[:, 1] / fw
+        roi = roi.astype(int)
+        crop = labeled[roi[0, 1]:roi[1, 1], roi[0, 0]:roi[1, 0]]
+        labs = np.unique(crop)
+        if len(labs) > 1:
+            seen.update(labs)
+            true_positive += 1
+        else:
+            false_negative += 1
+
+    false_positive = pred_max - len(seen)
+    return np.array([true_positive, false_positive, false_negative])

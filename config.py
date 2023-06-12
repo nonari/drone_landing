@@ -73,6 +73,7 @@ class TestConfig(Config):
         super().__init__(name)
         self._training = False
         self.model = 0
+        self.person_detect = False
         self.generate_images = True
         self.training_charts = True
         self.validation_stats = True

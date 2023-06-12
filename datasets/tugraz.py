@@ -92,6 +92,14 @@ class TUGraz(GenericDataset):
                 map(lambda x: x[1], filter(lambda x: x[0] % config.data_factor == 0, enumerate(self._label_paths))))
 
         self._label_to_tensor = label_to_tensor
+        self._currid = ''
 
     def get_folds(self):
         return [list(range(len(self._image_paths)))]
+
+    def __getitem__(self, item):
+        self._currid = self._image_paths[item][-7:-4]
+        tensor_im = self._prepare_image(self._image_paths[item])
+        rgb_lab = self._prepare_label(self._label_paths[item])
+        tensor_lab = self._label_to_tensor(rgb_lab, self._color_keys)
+        return tensor_im, tensor_lab
