@@ -33,6 +33,7 @@ def test_net(config, dataset, fold_info, sampler=None):
     labels = np.arange(0, dataset.classes())
     conf = np.zeros((dataset.classes(), dataset.classes()))
     total_time = 0
+    person = np.array([0, 0, 0])
     for idx, (image, label) in enumerate(dataset):
         if not config.validation_stats and not config.generate_images:
             break
@@ -47,10 +48,11 @@ def test_net(config, dataset, fold_info, sampler=None):
         # prediction = torch.rand((1, np.random.randint(0, 25), 704, 1024))
         pred_label = prediction.argmax(dim=1).squeeze().detach().cpu().numpy().astype(np.uint)
         true_label = label.argmax(dim=1).squeeze().detach().cpu().numpy().astype(np.uint)
-        person = np.array([0, 0, 0])
         if config.person_detect:
-            person += person_detect(config, true_label, pred_label, dataset)
-
+            personb = person_detect(config, true_label, pred_label, dataset)
+            print(personb)
+            person = person + personb
+            print(person)
         if config.generate_images:
             true_mask, pred_mask = dataset.pred_to_color_mask(true_label, pred_label)
             image = transforms.Normalize(**imagenet_denorm)(image).squeeze().movedim(0, -1).detach().cpu().numpy()
@@ -173,7 +175,15 @@ def person_detect(config, gt_label, pred_label, dataset):
             seen.update(labs)
             true_positive += 1
         else:
-            false_negative += 1
+            area = np.prod(roi[1]-roi[0])
+            if area > 2000:
+                false_negative += 1
 
-    false_positive = pred_max - len(seen)
+    false_positive = 0
+    props = measure.regionprops(labeled)
+    for p in props:
+        if p.label not in seen:
+            if p.area > 1000:
+                false_positive += 1
+
     return np.array([true_positive, false_positive, false_negative])
