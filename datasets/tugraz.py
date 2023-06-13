@@ -83,6 +83,8 @@ class TUGraz(GenericDataset):
         label_paths = glob(path.join(config.tugraz_root, 'training_set/gt/semantic/low_res_label_images/*.png'))
 
         self._image_paths = sorted(image_paths, key=lambda x: int(path.basename(x).split('.')[0]))
+        ids = list(map(lambda x: x[-7:-4], self._image_paths))
+        label_paths = list(filter(lambda x: x[-7:-4] in ids, label_paths))
         self._label_paths = sorted(label_paths, key=lambda x: int(path.basename(x).split('.')[0]))
 
         if config.data_factor > 1:
