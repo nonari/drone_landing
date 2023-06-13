@@ -41,18 +41,31 @@ def test_net(config, dataset, fold_info, sampler=None):
         image = image.unsqueeze(dim=0).to(device)
         label = label.unsqueeze(dim=0).to(device)
         t0 = time()
-        # prediction = net(image)
+        prediction = net(image)
         t1 = time()
         total_time += t1 - t0
 
         # prediction = torch.rand((1, np.random.randint(0, 25), 704, 1024))
-        pred_label = label.argmax(dim=1).squeeze().detach().cpu().numpy().astype(np.uint)
+        pred_label = prediction.argmax(dim=1).squeeze().detach().cpu().numpy().astype(np.uint)
         true_label = label.argmax(dim=1).squeeze().detach().cpu().numpy().astype(np.uint)
         if config.person_detect:
-            personb = person_detect(config, true_label, true_label, dataset)
+            personb = person_detect(config, true_label, pred_label, dataset)
             print(personb)
             person = person + personb
             print(person)
+        if config.generate_images:
+            true_mask, pred_mask = dataset.pred_to_color_mask(true_label, pred_label)
+            image = transforms.Normalize(**imagenet_denorm)(image).squeeze().movedim(0, -1).detach().cpu().numpy()
+            plot_and_save(image, pred_mask, true_mask, idx, config, (dataset.colors()/255, dataset.classnames()))
+
+        if config.validation_stats:
+            pred_label = pred_label.flatten()
+            true_label = true_label.flatten()
+            acc += metrics.accuracy_score(true_label, pred_label, normalize=True)
+            jcc.append(jaccard_score(true_label, pred_label, dataset.classes()))
+            pre.append(precision_score(true_label, pred_label, dataset.classes()))
+            f1.append(f1_score(true_label, pred_label, dataset.classes()))
+            conf += metrics.confusion_matrix(true_label, pred_label, labels=labels)
 
     fold_results = {}
     inference_time = total_time / data_loader.__len__()
@@ -173,4 +186,4 @@ def person_detect(config, gt_label, pred_label, dataset):
             if p.area > 1000:
                 false_positive += 1
 
-    return np.array([total, false_positive, false_negative])
+    return np.array([true_positive, false_positive, false_negative])
