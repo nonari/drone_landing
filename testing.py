@@ -11,7 +11,7 @@ from os import path
 from matplotlib import pyplot as plt
 import numpy as np
 from datasets.dataset import imagenet_denorm
-from custom_metrics import f1_score, jaccard_score, precision_score
+from custom_metrics import f1_score, jaccard_score, precision_score, global_score
 import matplotlib.patches as mpatch
 
 
@@ -29,7 +29,7 @@ def test_net(config, dataset, fold_info, sampler=None):
                              batch_size=1,
                              num_workers=config.num_threads)
 
-    acc, jcc, pre, f1 = 0, [], [], []
+    acc, jcc, pre, f1, global_m = 0, [], [], [], []
     labels = np.arange(0, dataset.classes())
     conf = np.zeros((dataset.classes(), dataset.classes()))
     total_time = 0
@@ -50,9 +50,7 @@ def test_net(config, dataset, fold_info, sampler=None):
         true_label = label.argmax(dim=1).squeeze().detach().cpu().numpy().astype(np.uint)
         if config.person_detect:
             personb = person_detect(config, true_label, pred_label, dataset)
-            print(personb)
             person = person + personb
-            print(person)
         if config.generate_images:
             true_mask, pred_mask = dataset.pred_to_color_mask(true_label, pred_label)
             image = transforms.Normalize(**imagenet_denorm)(image).squeeze().movedim(0, -1).detach().cpu().numpy()
@@ -66,6 +64,7 @@ def test_net(config, dataset, fold_info, sampler=None):
             pre.append(precision_score(true_label, pred_label, dataset.classes()))
             f1.append(f1_score(true_label, pred_label, dataset.classes()))
             conf += metrics.confusion_matrix(true_label, pred_label, labels=labels)
+            global_m.append(global_score(true_label, pred_label))
 
     fold_results = {}
     inference_time = total_time / data_loader.__len__()
@@ -76,9 +75,10 @@ def test_net(config, dataset, fold_info, sampler=None):
         jcc = np.nanmean(np.vstack(jcc), axis=0)
         pre = np.nanmean(np.vstack(pre), axis=0)
         f1 = np.nanmean(np.vstack(f1), axis=0)
+        global_m = np.nanmean(np.vstack(global_m), axis=0)
         # confusion gets normalization later
 
-        fold_results = {'confusion': conf, 'acc': acc, 'jcc': jcc, 'pre': pre, 'f1': f1}
+        fold_results = {'confusion': conf, 'acc': acc, 'jcc': jcc, 'pre': pre, 'f1': f1, 'global': global_m}
         print(fold_results)
 
     if config.training_charts:

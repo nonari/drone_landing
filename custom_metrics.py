@@ -11,6 +11,13 @@ def calc_acc(output, target):
     return accuracy
 
 
+def global_score(true, pred):
+    jcc = metrics.jaccard_score(true, pred, average='weighted', zero_division=0)
+    pre = metrics.precision_score(true, pred, average='weighted', zero_division=0)
+    f1 = metrics.f1_score(true, pred, average='weighted', zero_division=0)
+    return np.array([jcc, f1, pre])
+
+
 def precision_score(true, pred, num_classes):
     label_classes = set(np.unique(pred))
     all_classes = set(np.arange(num_classes))

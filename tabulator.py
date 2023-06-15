@@ -26,12 +26,19 @@ class Tabulator:
 
 
 def write_table(metrics, location, classnames):
-    tabulator = Tabulator(['', 'jaccard', 'f1', 'pre'], classnames)
+    tabulator = Tabulator(['', 'jaccard', 'f1', 'pre'], ['global']+list(classnames))
+    tabulator.add_line([metrics['global'][0], metrics['global'][1], metrics['global'][2]])
     for j, f, p in zip(metrics['jcc'], metrics['f1'], metrics['pre']):
         tabulator.add_line([j, f, p])
     print(tabulator.content)
     text_file = open(location, "w")
     text_file.write(tabulator.content)
+    text_file.close()
+
+
+def append_line(location, key, val):
+    text_file = open(location, "a")
+    text_file.write(f'{key}: {val:.2f}')
     text_file.close()
 
 

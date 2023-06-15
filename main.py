@@ -211,6 +211,7 @@ def folds_test(config):
             fold_summary = summarize_results([result])
             table_loc = path.join(config.test_path, f'table_metrics_{fold}.txt')
             tabulator.write_table(fold_summary, table_loc, dataset.classnames())
+            tabulator.append_line(table_loc, 'acc', fold_summary['acc'])
             conf_loc = path.join(config.test_path, f'confusion_{fold}.jpg')
             ploting.confusion_old(fold_summary['confusion'], dataset.classnames(), conf_loc)
             torch.save(fold_summary, path.join(config.test_path, f'metrics_summary_{fold}'))
@@ -229,17 +230,19 @@ def summarize_results(results):
     pre = [r['pre'] for r in results]
     f1 = [r['f1'] for r in results]
     conf = [r['confusion'] for r in results]
+    global_m = [r['global'] for r in results]
 
     acc = np.asarray(acc).mean()
     jcc = np.nanmean(np.vstack(jcc), axis=0)
     pre = np.nanmean(np.vstack(pre), axis=0)
     f1 = np.nanmean(np.vstack(f1), axis=0)
+    global_m = np.nanmean(np.vstack(global_m), axis=0)
 
     conf = np.dstack(conf)
     conf = conf.sum(axis=2) + np.eye(conf.shape[0])
     conf = conf / conf.astype(np.float32).sum(axis=1, keepdims=True)
 
-    final_results = {'confusion': conf, 'acc': acc, 'jcc': jcc, 'pre': pre, 'f1': f1}
+    final_results = {'confusion': conf, 'acc': acc, 'jcc': jcc, 'pre': pre, 'f1': f1, 'global': global_m}
     return final_results
 
 
