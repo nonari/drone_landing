@@ -3,9 +3,15 @@ import seaborn as sea
 import torch
 from datasets.aeroscapes import aeroscapes_classnames
 from sklearn.metrics import ConfusionMatrixDisplay
+import numpy as np
 
-
-def confusion_old(conf, class_names, location):
+def confusion_old(conf, class_names, location, config):
+    if config.dataset_name.split('.')[-1] == "UAVid":
+        class_names = list(class_names)
+        del class_names[6]
+        class_names[5] = 'car'
+        conf = np.delete(conf, 6, axis=0)
+        conf = np.delete(conf, 6, axis=1)
     conf_disp = ConfusionMatrixDisplay(confusion_matrix=conf, display_labels=class_names)
     conf_disp.plot(xticks_rotation=25, values_format='.2f')
     # plt.show()
