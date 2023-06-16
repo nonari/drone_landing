@@ -34,7 +34,7 @@ def test_net(config, dataset, fold_info, sampler=None):
     conf = np.zeros((dataset.classes(), dataset.classes()))
     total_time = 0
     person = np.array([0, 0, 0])
-    for idx, (image, label) in enumerate(dataset):
+    for idx, (image, label) in enumerate(data_loader):
         if not config.validation_stats and not config.generate_images:
             break
 
