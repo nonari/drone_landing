@@ -157,11 +157,22 @@ class BCELLDiceAvg(nn.Module):
         return loss
 
 
+class BCELLDice(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.bcell = nn.BCEWithLogitsLoss()
+        self.dice = DiceLoss()
+
+    def forward(self, y_true, y_pred):
+        loss = self.bcell(y_true, y_pred) + self.diceavg(y_true, y_pred)
+
+        return loss
+
 class BCELLDiceAvgOld(nn.Module):
     def __init__(self):
         super().__init__()
         self.bcell = nn.BCEWithLogitsLoss()
-        self.diceavg = DiceAvgLossOld()
+        self.dice = DiceAvgLossOld()
 
     def forward(self, y_true, y_pred):
         loss = self.bcell(y_true, y_pred) + self.diceavg(y_true, y_pred)
