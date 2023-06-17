@@ -201,7 +201,7 @@ def cv_merge(im1, im2, w1=0.5):
     return merged
 
 
-def cv_warp(ori_im, dst_im, h_mat):
+def cv_warp(ori_im, h_mat):
     width = ori_im.shape[1]
     heigh = ori_im.shape[0]
     warped_im = cv.warpPerspective(ori_im, h_mat, (width, heigh))
@@ -284,34 +284,45 @@ def cv_corners(gray):
 def detect_movement(im1, im2):
     im1_gray = color.rgb2gray(im1)
     im2_gray = color.rgb2gray(im2)
-    # t0=time()
-    im1_fil = cv.GaussianBlur(im1_gray, (3, 3), 2)
-    im2_fil = cv.GaussianBlur(im2_gray, (3, 3), 2)
+    t0=time()
+    im1_fil = cv.GaussianBlur(im1_gray, (5, 5), 2)
+    im2_fil = cv.GaussianBlur(im2_gray, (5, 5), 2)
     # im1_fil = skimage.filters.gaussian(im1_gray, sigma=2)
     # im2_fil = skimage.filters.gaussian(im2_gray, sigma=2)
-    # print(time()-t0)
+    print(f'tttt{time()-t0}')
     im1_gray, im2_gray = pad_imgs(im1_fil, im2_fil)
 
     merged_movement = np.abs(im1_gray - im2_gray)
+    merged_movement = downscale(merged_movement, 2)
+    print(f'abs{time() - t0}')
     border = np.zeros(im1_gray.shape)
+    print(f'zeros{time() - t0}')
     border[im1_gray == 0] = 1
+    border = downscale(border, 2)
+    print(f'shift{time() - t0}')
     # border = dilation(border, selem=disk(25))
-    border = cv.dilate(border, cv.getStructuringElement(cv.MORPH_ELLIPSE, (25,25)))
+    # border = cv.dilate(border, cv.getStructuringElement(cv.MORPH_ELLIPSE, (25,25)))
+    print(f'dilate{time() - t0}')
     merged_movement[border == 1] = 0
     t = threshold_otsu(merged_movement)
-    merged_movement[merged_movement < t*0.7] = 0
+    merged_movement[merged_movement < t] = 0
     merged_movement[merged_movement > 0] = 1
-
+    print(f'merged{time() - t0}')
     merged_movement = cv.dilate(merged_movement, cv.getStructuringElement(cv.MORPH_ELLIPSE, (6, 6)))
     # merged_movement = dilation(merged_movement, selem=disk(6))
-
+    merged_movement = upscale(merged_movement, 2)
+    print(f'dil2- {time() - t0}')
     # plt.imshow(merged_movement)
     # plt.show()
     return merged_movement
 
 
-def detect_objects(old_frame, curr_frame, movement, labels):
-    person = (labels == 7)
+def detect_objects(old_frame, curr_frame, movement, old_label, curr_label):
+    person = (old_label == 7)
+    curr_person = (curr_label == 7)
+    plt.imshow(person)
+    plt.show()
+    person_moving_curr = np.logical_and(movement, curr_person).astype(np.uint8)
     person_moving = np.logical_and(movement, person).astype(np.uint8)
     # plt.imshow(person_moving*255)
     # plt.show()
@@ -320,8 +331,20 @@ def detect_objects(old_frame, curr_frame, movement, labels):
     idx = np.random.choice(np.arange(len(y)), int(len(y)*0.01), replace=False)
     p0 = mov_coords[idx]
 
+    plt.imshow(person_moving)
+    plt.show()
     # find_corners()
+    if p0.shape[0] < 2:
+        return []
+    cv.Sobel()
     p1 = cv_optical_flow_lk(old_frame, curr_frame, p0)
+    p1, p0 = clean_points_outside_frame(p1, p0, curr_frame.shape)
+    p1int = p1.astype(int)
+    inside = person_moving_curr[p1int[:, 0], p1int[:, 1]].astype(bool)
+    p1 = p1[inside]
+    p0 = p0[inside]
+    plt.imshow(match_points(curr_frame, old_frame, p0, p1))
+    plt.show()
     cc_mov = measure.label(person_moving)
     mov_props = measure.regionprops(cc_mov)
     flat_idx = np.ravel_multi_index((p0[:, 0].astype(int), p0[:, 1].astype(int)), movement.shape)
@@ -347,6 +370,20 @@ def detect_objects(old_frame, curr_frame, movement, labels):
         obj_vec = p1_obj - p0_obj
         angles = np.rad2deg(np.arctan2(obj_vec[:, 0], obj_vec[:, 1]))
         mag = np.sqrt(np.sum(obj_vec**2, axis=1))
+        # bi = np.arange(0, 361, 36)
+        # cc, _ = np.histogram(angles + 180, bi)
+        # ini = 0
+        # end = 36
+        # for i in range(10):
+        #     f = np.logical_and((ini >= angles+180), (angles+180 < end))
+        #     pos = np.where(f)
+        #     for an, ma in zip(angles[pos], mag[pos]):
+        #         print(an, ma)
+        #     print('----------')
+        #     ini += 36
+        #     end += 36
+        plt.scatter(angles+180, mag)
+        plt.show()
         crop = person_moving[yt:yb, xl:xr]
         width = measure_max_width(crop, np.mean(angles))
         py, px = np.median(p1_obj[:, 0]), np.median(p1_obj[:, 1])
@@ -409,6 +446,17 @@ def init_model():
         return label, colors[label].astype(np.uint8)
     return inn
 
+
+def downscale(a, factor):
+    return a[::factor, ::factor]
+
+
+def upscale(a, factor):
+    fy = np.repeat(a, factor, axis=0)
+    fx = np.repeat(fy, factor, axis=1)
+    return fx
+
+
 def clean_points(p0, label):
     label = label.copy()
     label[label == 6] = 2
@@ -443,42 +491,56 @@ def main():
     p0 = clean_points(p0, old_label)
     for curr_frame, curr_roi in seq[2:]:
         curr_label, curr_im_label = net(curr_frame)
+        t0=time()
         curr_gray = color.rgb2gray(curr_frame)
+        print(f'timegray {time() - t0}')
         p1 = cv_optical_flow_lk(old_gray, curr_gray, p0)
+        print(f'timeflow1 {time() - t0}')
         matched = match_points(curr_frame, old_frame, p0, p1)
+        print(f'timematch {time() - t0}')
         p0, p1 = clean_points_outside_frame(p0, p1, SIZE)
         h_mat = cv_find_homography(p0, p1)
-        warped_old = cv_warp(old_frame, curr_frame, h_mat)
+        print(f'timehomo {time() - t0}')
+        warped_old = cv_warp(old_frame, h_mat)
+        w_label_old = cv_warp(old_label, h_mat)
         warp_old_gray = color.rgb2gray(warped_old)
+        print(f'timewarp {time() - t0}')
         merged_im = cv_merge(warped_old, curr_frame)
+        print(f'time8 {time() - t0}')
+        plt.imshow(merged_im)
+        plt.show()
         # crop_old, crop_curr, cc = crop_warped(h_mat, warped_old.shape[:2], warped_old, curr_frame)
         # flow = optical_flow(warped_old, curr_frame)
         # flow_im = flow_to_color(flow)
         mask = points_to_mask(p1, SIZE[::-1], mask)
         movement = detect_movement(warp_old_gray, curr_gray)
-        ext = detect_objects(warped_old, curr_frame, movement, old_label)
+        print(f'time9 {time() - t0}')
+        ext = detect_objects(warped_old, curr_frame, movement, w_label_old, curr_label)
+        print(f'time10 {time() - t0}')
         drawn_im = draw_mask(curr_frame, mask)
+        curr_label_copy = curr_label.copy()
         for i in ext:
-            curr_label[(i[:, 0]).astype(int), (i[:, 1]).astype(int)] = 7
-        ext_im_label = colors[curr_label].astype(np.uint8)
+            curr_label_copy[(i[:, 0]).astype(int), (i[:, 1]).astype(int)] = 7
+        ext_im_label = colors[curr_label_copy].astype(np.uint8)
         segmented = cv_merge(curr_frame, ext_im_label)
-        person_bin = mask_with_ones(curr_label, [7])
-        risk = risks[curr_label]
+        person_bin = mask_with_ones(curr_label_copy, [7])
+        risk = risks[curr_label_copy]
         person_risk = area(person_bin, 50, decay='solid', convert=True)
         risk += person_risk
         risk = np.clip(risk, 0, 1)
+        print(f'time {time()-t0}')
         # plt.imshow(1-risk, cmap='Greys')
         # plt.show()
         ppt_r = (1 - risk) / 3
-        ppt_r[0,0] = 1
+        ppt_r[0, 0] = 1
         # plt.imsave(f'/home/nonari/PycharmProjects/drone_landing/executions/track/{ite[0]}risk.png', ppt_r, cmap="hsv")
         # plt.imsave(f'/home/nonari/PycharmProjects/drone_landing/executions/track/{ite[0]}seg.jpg', segmented)
         ite[0] += 1
+        plt.imshow(ppt_r)
+        plt.show()
         # plt.imshow(merged_im)
-        # plt.show()
         # plt.imshow(matched)
         # plt.show()
-        # plt.imshow(flow_im)
         # plt.show()
         print('dddddddddddddd')
         buff.push(drawn_im)
