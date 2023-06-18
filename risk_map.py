@@ -20,11 +20,13 @@ import numpy as np
 from skimage.morphology import dilation, disk
 from skimage.filters import threshold_otsu
 from datasets.synthetic import synthetic_color_keys as colors
-
+import matplotlib.colors as colorsm
 from custom_models.safeuav import UNet_MDCB
 from datasets.dataset import adapt_image
 from tracking.Utils import FramesSequenceUAV123, BlockingBuffer, anim, AnySeq
 from datasets.synthetic import TUGrazToSynthetic
+from datasets.dataset import adapt_image, prepare_image
+totensor = prepare_image(adapt_image((704, 1024)))
 
 SIZE = 1280, 720
 
@@ -39,7 +41,8 @@ def init_model():
     unet.to(device=torch.device('cpu'))
     unet.train(mode=False)
     def inn(npim):
-        pred = unet(npim.unsqueeze(dim=0))
+        tensor = totensor(npim)
+        pred = unet(tensor.unsqueeze(dim=0))
         label = torch.argmax(pred, dim=1)
         label = label.squeeze(dim=0).numpy().astype(np.uint8)
         return label, colors[label].astype(np.uint8)
@@ -72,16 +75,26 @@ def area(binary_im, max_dist, decay='linear', risk_lv=1, convert=True):
     return risk * risk_lv
 
 from config import TestConfig
+def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
+    new_cmap = colorsm.LinearSegmentedColormap.from_list(
+        'trunc({n},{a:.2f},{b:.2f})'.format(n=cmap.name, a=minval, b=maxval),
+        cmap(np.linspace(minval, maxval, n)[::-1]))
+    return new_cmap
+
+arr = np.linspace(0, 50, 100).reshape((10, 10))
+
+cmap = plt.get_cmap('hsv')
+new_cmap = truncate_colormap(cmap, 0.0, 0.333)
 conf=TestConfig('aaa')
 conf.net_config = {'input_size': (704, 1024)}
 conf.tugraz_root="/home/nonari/Documentos/semantic_drone_dataset_semantics_v1.1/semantic_drone_dataset/"
 data = TUGrazToSynthetic(conf)
-# impil = Image.open('/home/nonari/Documentos/semantic_drone_dataset_semantics_v1.1/semantic_drone_dataset/training_set/low_res_images/596.jpg')
-# impil = impil.resize(SIZE, resample=Image.BILINEAR)
+impil = Image.open('/home/nonari/Documentos/semantic_drone_dataset_semantics_v1.1/semantic_drone_dataset/training_set/low_res_images/596.jpg')
+impil = impil.resize(SIZE, resample=Image.BILINEAR)
 # im = np.asarray(impil)
-im, lab = data[0]
+# im, lab = data[0]
 unet = init_model()
-label, colorim = unet(im)
+label, colorim = unet('/home/nonari/Documentos/semantic_drone_dataset_semantics_v1.1/semantic_drone_dataset/training_set/low_res_images/596.jpg')
 person_bin = mask_with_ones(label, [7])
 plab = measure.label(1 - person_bin)
 porps = measure.regionprops(plab)
@@ -92,7 +105,10 @@ risk = risks[label]
 person_risk = area(person_bin, 50, decay='solid', convert=True)
 risk += person_risk
 risk = np.clip(risk, 0, 1)
-ppt_r = (1 - risk) / 3
+ppt_r = risk
 ppt_r[0, 0] = 1
-plt.imshow(ppt_r, cmap='hsv')
+plt.axis('off')
+plt.imshow(ppt_r, cmap=new_cmap)
+plt.colorbar(orientation="horizontal", fraction=0.058, pad=0.1)
+plt.savefig('/home/nonari/Documentos/imagestfm/tugrazrisk.png')
 plt.show()

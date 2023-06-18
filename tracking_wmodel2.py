@@ -7,7 +7,7 @@ import asyncio
 import threading
 import segmentation_models_pytorch as smp
 from datasets.synthetic import synthetic_risks as risks
-
+from matplotlib import colors as colorm
 import matplotlib.pyplot as plt
 from torchvision.transforms import transforms, InterpolationMode
 import skimage.filters
@@ -25,14 +25,8 @@ from custom_models.safeuav import UNet_MDCB
 from datasets.dataset import adapt_image
 from tracking.Utils import FramesSequenceUAV123, BlockingBuffer, anim, AnySeq
 
-from matplotlib.colors import LinearSegmentedColormap
-c = ["darkred","red","lightcoral", "palegreen","green","darkgreen"]
-v = [0,.15,.4,0.6,.9,1.]
-l = list(zip(v,c))
-cmap=LinearSegmentedColormap.from_list('rg',l, N=256)
-
 dataset_root = path.expanduser('~/Documentos/aeroscapes')
-seq = AnySeq(dataset_root, '000003')
+seq = AnySeq(dataset_root, '000004')
 buff = BlockingBuffer()
 
 # params for ShiTomasi corner detection
@@ -474,13 +468,24 @@ def clean_points(p0, label):
     return pfilt
 
 
+def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
+    new_cmap = colorm.LinearSegmentedColormap.from_list(
+        'trunc({n},{a:.2f},{b:.2f})'.format(n=cmap.name, a=minval, b=maxval),
+        cmap(np.linspace(minval, maxval, n)[::-1]))
+    return new_cmap
+
+
+cmap = plt.get_cmap('hsv')
+new_cmap = truncate_colormap(cmap, 0.0, 0.333)
+
 plt.figure(dpi=1200)
 torch.set_grad_enabled(False)
 
-ite=[0]
+ite = [0]
+
+
 def main():
-    seq.__next__()
-    old_frame, r = seq.__next__()
+    old_frame, r = seq[56]
     net = init_model()
     old_label, old_im_label = net(old_frame)
     old_gray = color.rgb2gray(old_frame)
@@ -488,26 +493,19 @@ def main():
     mask = points_to_mask(p0, SIZE[::-1])
     drawn_im = draw_mask(old_frame, mask)
     buff.push(drawn_im)
-    # plt.imshow(mask)
-    # plt.show()
-    # p0 = clean_points_in_rois(p0, [r])
     p0 = clean_points(p0, old_label)
-    for curr_frame, curr_roi in seq[2:]:
+    for curr_frame, curr_roi in seq[57:]:
         curr_label, curr_im_label = net(curr_frame)
         curr_gray = color.rgb2gray(curr_frame)
         p1 = cv_optical_flow_lk(old_gray, curr_gray, p0)
-        # matched = match_points(curr_frame, old_frame, p0, p1)
         p0, p1 = clean_points_outside_frame(p0, p1, SIZE)
         h_mat = cv_find_homography(p0, p1)
         warped_old = cv_warp(old_frame, h_mat)
         w_label_old = cv_warp(old_label, h_mat)
         warp_old_gray = color.rgb2gray(warped_old)
-        # merged_im = cv_merge(warped_old, curr_frame)
-        # plt.imshow(merged_im)
-        # plt.show()
-        # crop_old, crop_curr, cc = crop_warped(h_mat, warped_old.shape[:2], warped_old, curr_frame)
-        # flow = optical_flow(warped_old, curr_frame)
-        # flow_im = flow_to_color(flow)
+        merged_im = cv_merge(warped_old, curr_frame)
+        plt.imshow(merged_im)
+        plt.show()
         mask = points_to_mask(p1, SIZE[::-1], mask)
         movement = detect_movement(warp_old_gray, curr_gray)
         ext = detect_objects(warped_old, curr_frame, movement, w_label_old, curr_label)
@@ -520,18 +518,12 @@ def main():
         person_risk = area(person_bin, 50, decay='solid', convert=True)
         risk += person_risk
         risk = np.clip(risk, 0, 1)
-        # plt.imshow(1-risk, cmap='Greys')
-        # plt.show()
-        ppt_r = (1 - risk) / 3
-        ppt_r[0, 0] = 1
-        # plt.imsave(f'/home/nonari/PycharmProjects/drone_landing/executions/track/{ite[0]}risk.png', ppt_r, cmap="hsv")
-        # plt.imsave(f'/home/nonari/PycharmProjects/drone_landing/executions/track/{ite[0]}seg.jpg', segmented)
         ite[0] += 1
-        plt.imshow(ppt_r)
+        plt.imshow(risk)
         plt.show()
         # plt.imshow(merged_im)
-        # plt.imshow(matched)
         # plt.show()
+        # plt.imshow(matched)
         # plt.show()
         print('dddddddddddddd')
         buff.push(drawn_im)
