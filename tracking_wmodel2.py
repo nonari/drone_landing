@@ -320,84 +320,56 @@ def detect_movement(im1, im2):
 def detect_objects(old_frame, curr_frame, movement, old_label, curr_label):
     person = (old_label == 7)
     curr_person = (curr_label == 7)
-    plt.imshow(person)
-    plt.show()
     person_moving_curr = np.logical_and(movement, curr_person).astype(np.uint8)
-    person_moving = np.logical_and(movement, person).astype(np.uint8)
-    # plt.imshow(person_moving*255)
-    # plt.show()
-    y, x = np.where(person_moving == 1)
-    mov_coords = np.hstack([y[:, None], x[:, None]]).astype(np.float32)
-    idx = np.random.choice(np.arange(len(y)), int(len(y)*0.01), replace=False)
-    p0 = mov_coords[idx]
+    person_moving_old = np.logical_and(movement, person).astype(np.uint8)
 
-    plt.imshow(person_moving)
-    plt.show()
-    # find_corners()
-    if p0.shape[0] < 2:
-        return []
-    cv.Sobel()
+    cc_mov_curr = measure.label(person_moving_curr)
+    cc_mov_old = measure.label(person_moving_old)
+    prop_mov_old = measure.regionprops(cc_mov_old)
+    prop_mov_curr = measure.regionprops(cc_mov_curr)
+    for prop in prop_mov_old:
+        if prop.area < 1000:
+            person_moving_old[cc_mov_old == prop.label] = 0
+
+    y, x = np.where(person_moving_old == 1)
+    mov_coords = np.hstack([y[:, None], x[:, None]]).astype(np.float32)
+    idx = np.random.choice(np.arange(len(y)), int(len(y) * 0.05), replace=False)
+    p0 = mov_coords[idx]
     p1 = cv_optical_flow_lk(old_frame, curr_frame, p0)
-    p1, p0 = clean_points_outside_frame(p1, p0, curr_frame.shape)
+    p1, p0 = clean_points_outside_frame(p1, p0, curr_frame.shape[:2][::-1])
     p1int = p1.astype(int)
-    inside = person_moving_curr[p1int[:, 0], p1int[:, 1]].astype(bool)
+    dest_cc = cc_mov_curr[p1int[:, 0], p1int[:, 1]]
+    inside = dest_cc.astype(bool)
     p1 = p1[inside]
     p0 = p0[inside]
-    plt.imshow(match_points(curr_frame, old_frame, p0, p1))
-    plt.show()
-    cc_mov = measure.label(person_moving)
-    mov_props = measure.regionprops(cc_mov)
-    flat_idx = np.ravel_multi_index((p0[:, 0].astype(int), p0[:, 1].astype(int)), movement.shape)
-    cc_mov_flat = cc_mov.flatten()
-    extensions = []
-    for reg in mov_props:
-        if reg.area < 1000:
-            continue
-        if reg.major_axis_length < 10:
-            continue
-        if reg.minor_axis_length < 10:
-            continue
-        yt, xl, yb, xr = reg.bbox
-        mov_points = np.where(cc_mov_flat == reg.label)[0]
-        object_points = []
-        for idx, fidx in enumerate(flat_idx):
-            if fidx in mov_points:
-                object_points.append(idx)
-        if len(object_points) < 3:
-            continue
-        p0_obj = p0[object_points]
-        p1_obj = p1[object_points]
-        obj_vec = p1_obj - p0_obj
-        angles = np.rad2deg(np.arctan2(obj_vec[:, 0], obj_vec[:, 1]))
-        mag = np.sqrt(np.sum(obj_vec**2, axis=1))
-        # bi = np.arange(0, 361, 36)
-        # cc, _ = np.histogram(angles + 180, bi)
-        # ini = 0
-        # end = 36
-        # for i in range(10):
-        #     f = np.logical_and((ini >= angles+180), (angles+180 < end))
-        #     pos = np.where(f)
-        #     for an, ma in zip(angles[pos], mag[pos]):
-        #         print(an, ma)
-        #     print('----------')
-        #     ini += 36
-        #     end += 36
-        plt.scatter(angles+180, mag)
-        plt.show()
-        crop = person_moving[yt:yb, xl:xr]
-        width = measure_max_width(crop, np.mean(angles))
-        py, px = np.median(p1_obj[:, 0]), np.median(p1_obj[:, 1])
-        y_poly = np.array([py, (mag[0] * 40)+py, (mag[0] * 20)+py, py]).astype(int)
-        x_poly = np.array([px-width/2, px-width/2, px+width/2, px+width/2]).astype(int)
-        rectangle = draw.polygon(y_poly, x_poly, shape=person_moving.shape)
-        rectangle = np.vstack(rectangle).T
-        rot_rect = rotate_points(rectangle, (py, px), 90-np.median(angles), shape=person_moving.shape)
-        extensions.append(rot_rect)
+    dest_cc = dest_cc[inside]
+    p0int = p0.astype(int)
+    orig_cc = cc_mov_old[p0int[:, 0], p0int[:, 1]]
+    r = [[]] * max(orig_cc)
+    for ori, dest in zip(orig_cc, dest_cc):
+        if len(r[ori-1]) == 0:
+            r[ori-1] = [0] * max(dest_cc)
+        r[ori-1][dest-1] += 1
 
-    match_im = match_points(curr_frame, old_frame, p0, p1)
-    # plt.imshow(match_im)
-    # plt.show()
-    # plt.imsave(f'/home/nonari/PycharmProjects/drone_landing/executions/track/{ite[0]}match.jpg', match_im)
+    extensions = []
+    for idx, ld in enumerate(r):
+        if len(ld) > 0:
+            dest = np.argmax(ld)
+            c0 = np.array(prop_mov_old[idx].centroid)
+            c1 = np.array(prop_mov_curr[dest].centroid)
+            yt, xl, yb, xr = prop_mov_curr[dest].bbox
+            vec = c1 - c0
+            angle = np.rad2deg(np.arctan2(*vec))
+            mag = np.sqrt(np.sum(np.power(vec, 2)))
+            crop = person_moving_curr[yt:yb, xl:xr]
+            width = measure_max_width(crop, angle)
+            py, px = c1
+            y_poly = np.array([py, (mag * 40)+py, (mag * 20)+py, py]).astype(int)
+            x_poly = np.array([px-width/2, px-width/2, px+width/2, px+width/2]).astype(int)
+            rectangle = draw.polygon(y_poly, x_poly, shape=person_moving_old.shape)
+            rectangle = np.vstack(rectangle).T
+            rot_rect = rotate_points(rectangle, (py, px), 90-np.median(angle), shape=person_moving_old.shape)
+            extensions.append(rot_rect)
 
     return extensions
 
