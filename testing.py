@@ -34,10 +34,14 @@ def test_net(config, dataset, fold_info, sampler=None):
     conf = np.zeros((dataset.classes(), dataset.classes()))
     total_time = 0
     person = np.array([0, 0, 0])
-    for idx, (image, label) in enumerate(data_loader):
+    for idx, (image, label) in enumerate(dataset):
         if not config.validation_stats and not config.generate_images:
             break
-
+        image, label = dataset[0]
+        classmap = label.squeeze().numpy().argmax(axis=0)
+        imlab, iimlab = dataset.pred_to_color_mask(classmap, classmap)
+        plt.imshow(imlab)
+        plt.show()
         image = image.unsqueeze(dim=0).to(device)
         label = label.unsqueeze(dim=0).to(device)
         t0 = time()

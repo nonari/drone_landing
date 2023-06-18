@@ -330,6 +330,18 @@ def detect_objects(old_frame, curr_frame, movement, old_label, curr_label):
     for prop in prop_mov_old:
         if prop.area < 1000:
             person_moving_old[cc_mov_old == prop.label] = 0
+    centroids_curr = {}
+    all_dest = set()
+    for prop in prop_mov_curr:
+        if prop.area < 1000:
+            person_moving_curr[cc_mov_curr == prop.label] = 0
+        else:
+            all_dest.add(prop.label)
+            centroids_curr[prop.label] = np.array(prop.centroid)
+    plt.imshow(person_moving_old)
+    plt.show()
+    plt.imshow(person_moving_curr)
+    plt.show()
 
     y, x = np.where(person_moving_old == 1)
     mov_coords = np.hstack([y[:, None], x[:, None]]).astype(np.float32)
@@ -339,17 +351,36 @@ def detect_objects(old_frame, curr_frame, movement, old_label, curr_label):
     p1, p0 = clean_points_outside_frame(p1, p0, curr_frame.shape[:2][::-1])
     p1int = p1.astype(int)
     dest_cc = cc_mov_curr[p1int[:, 0], p1int[:, 1]]
+    p0int = p0.astype(int)
+    orig_cc_all = set(np.unique(cc_mov_old[p0int[:, 0], p0int[:, 1]]))
     inside = dest_cc.astype(bool)
     p1 = p1[inside]
     p0 = p0[inside]
     dest_cc = dest_cc[inside]
     p0int = p0.astype(int)
     orig_cc = cc_mov_old[p0int[:, 0], p0int[:, 1]]
-    r = [[]] * max(orig_cc)
-    for ori, dest in zip(orig_cc, dest_cc):
-        if len(r[ori-1]) == 0:
-            r[ori-1] = [0] * max(dest_cc)
-        r[ori-1][dest-1] += 1
+    not_found = orig_cc_all - set(orig_cc)
+    r = [[]] * max(orig_cc_all)
+    if len(set(orig_cc)) > 0:
+        for ori, dest in zip(orig_cc, dest_cc):
+            if len(r[ori-1]) == 0:
+                r[ori-1] = [0] * max(all_dest)
+            r[ori-1][dest-1] += 1
+    for i in not_found:
+        old_centroid = np.array(prop_mov_old[i-1].centroid)
+        distances = {}
+        for i in centroids_curr:
+            dist = np.sqrt(np.sum(np.power(centroids_curr[i] - old_centroid, 2)))
+            distances[i] = dist
+        maxd = 9999
+        lb = 0
+        for ddd in distances:
+            if distances[ddd] < maxd:
+                lb = ddd
+                maxd = distances[ddd]
+        if maxd < 200:
+            r[i-1] = [0]*max(all_dest)
+            r[i-1][lb-1] = 99
 
     extensions = []
     for idx, ld in enumerate(r):
@@ -463,44 +494,32 @@ def main():
     p0 = clean_points(p0, old_label)
     for curr_frame, curr_roi in seq[2:]:
         curr_label, curr_im_label = net(curr_frame)
-        t0=time()
         curr_gray = color.rgb2gray(curr_frame)
-        print(f'timegray {time() - t0}')
         p1 = cv_optical_flow_lk(old_gray, curr_gray, p0)
-        print(f'timeflow1 {time() - t0}')
-        matched = match_points(curr_frame, old_frame, p0, p1)
-        print(f'timematch {time() - t0}')
+        # matched = match_points(curr_frame, old_frame, p0, p1)
         p0, p1 = clean_points_outside_frame(p0, p1, SIZE)
         h_mat = cv_find_homography(p0, p1)
-        print(f'timehomo {time() - t0}')
         warped_old = cv_warp(old_frame, h_mat)
         w_label_old = cv_warp(old_label, h_mat)
         warp_old_gray = color.rgb2gray(warped_old)
-        print(f'timewarp {time() - t0}')
-        merged_im = cv_merge(warped_old, curr_frame)
-        print(f'time8 {time() - t0}')
-        plt.imshow(merged_im)
-        plt.show()
+        # merged_im = cv_merge(warped_old, curr_frame)
+        # plt.imshow(merged_im)
+        # plt.show()
         # crop_old, crop_curr, cc = crop_warped(h_mat, warped_old.shape[:2], warped_old, curr_frame)
         # flow = optical_flow(warped_old, curr_frame)
         # flow_im = flow_to_color(flow)
         mask = points_to_mask(p1, SIZE[::-1], mask)
         movement = detect_movement(warp_old_gray, curr_gray)
-        print(f'time9 {time() - t0}')
         ext = detect_objects(warped_old, curr_frame, movement, w_label_old, curr_label)
-        print(f'time10 {time() - t0}')
         drawn_im = draw_mask(curr_frame, mask)
         curr_label_copy = curr_label.copy()
         for i in ext:
             curr_label_copy[(i[:, 0]).astype(int), (i[:, 1]).astype(int)] = 7
-        ext_im_label = colors[curr_label_copy].astype(np.uint8)
-        segmented = cv_merge(curr_frame, ext_im_label)
         person_bin = mask_with_ones(curr_label_copy, [7])
         risk = risks[curr_label_copy]
         person_risk = area(person_bin, 50, decay='solid', convert=True)
         risk += person_risk
         risk = np.clip(risk, 0, 1)
-        print(f'time {time()-t0}')
         # plt.imshow(1-risk, cmap='Greys')
         # plt.show()
         ppt_r = (1 - risk) / 3
